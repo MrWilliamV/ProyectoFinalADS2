@@ -1,0 +1,118 @@
+- name: Despliegue de Farmacia HealthAndHouse
+  hosts: all
+  become: false
+
+  vars:
+    project_path: "/home/{{ ansible_user }}/PrimerParcial-{{ compose_project_name }}/"
+    playbook_dir: "/home/{{ ansible_user }}/PrimerParcial-{{ compose_project_name }}/ci/"
+    project_name: "{{ compose_project_name }}"
+
+  tasks:
+
+    - name: 1. Crear directorio del proyecto si no existe
+      file:
+        path: "{{ project_path }}"
+        state: directory
+        mode: '0755'
+      tags: [ deploy ]
+
+    - name: 2. Sincronizar archivos del proyecto
+      synchronize:
+        src: "{{ playbook_dir }}/../"
+        dest: "{{ project_path }}/"
+        delete: yes
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=.venv"
+          - "--exclude=__pycache__"
+          - "--exclude=.idea"
+          - "--exclude=.vscode"
+          - "--exclude=node_modules"
+      tags: [ deploy ]
+
+    - name: 3. Copiar archivo .env generado por Jenkins
+      copy:
+        src: "{{ env_file }}"
+        dest: "{{ project_path }}/.env"
+        mode: '0600'
+      tags: [ deploy ]
+
+    - name: 4. Copiar docker-compose.yml
+      copy:
+        src: "{{ compose_file }}"
+        dest: "{{ project_path }}/docker-compose.yml"
+        mode: '0755'
+      tags: [ deploy ]
+
+    - name: 5. Levantar infraestructura con Docker Compose (multi-instancia)
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_path }}"
+        project_name: "{{ project_name }}"
+        files:
+          - docker-compose.yml
+        state: present
+        build: always
+        pull: always
+      tags: [ deploy ]
+
+    - name: 6. Esperar a que el servicio web esté arriba
+      command: docker compose -p {{ project_name }} ps
+      args:
+        chdir: "{{ project_path }}"
+      register: ps_out
+      retries: 30
+      delay: 3
+      until: ps_out.stdout is search("web")
+      tags: [ deploy ]
+
+    - name: Collectstatic
+      command: docker compose -p {{ compose_project_name }} exec -T web python manage.py collectstatic --noinput
+      args:
+        chdir: "{{ project_path }}"
+      tags: [ deploy ]
+
+    # ============================
+    # TESTS
+    # ============================
+
+    - name: 7. Crear DB y usuario de tests
+      command: >
+        docker compose -p {{ project_name }} exec -T mysql sh -lc
+        "mysql -uroot -p\"$MYSQL_ROOT_PASSWORD\" -e
+        \"CREATE DATABASE IF NOT EXISTS test_farmacia;
+          CREATE USER IF NOT EXISTS '$MYSQL_USER'@'%'
+          IDENTIFIED BY '$MYSQL_PASSWORD';
+          GRANT ALL PRIVILEGES ON test_farmacia.* TO '$MYSQL_USER'@'%';
+          FLUSH PRIVILEGES;\""
+      args:
+        chdir: "{{ project_path }}"
+      tags: [ test ]
+
+    - name: 8. Ejecutar tests
+      command: docker compose -p {{ project_name }} exec -T web python manage.py test --verbosity 2 --keepdb
+      args:
+        chdir: "{{ project_path }}"
+      tags: [ test ]
+
+    # ============================
+    # MIGRACIONES
+    # ============================
+
+    - name: 9. Hacer migraciones
+      command: docker compose -p {{ project_name }} exec -T web python manage.py migrate
+      args:
+        chdir: "{{ project_path }}"
+      tags: [ migrate ]
+
+    - name: 10. Crear superusuario
+      command: docker compose -p {{ project_name }} exec -T web python manage.py createsuperuser --noinput
+      args:
+        chdir: "{{ project_path }}"
+      ignore_errors: true
+      tags: [ superuser ]
+
+    - name: 11. Asignar rol ADMINISTRADOR
+      command: docker compose -p {{ project_name }} exec -T web python manage.py assign_admin_role
+      args:
+        chdir: "{{ project_path }}"
+      tags: [ role ]

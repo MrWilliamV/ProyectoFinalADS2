@@ -1,0 +1,7 @@
+product.admin module
+====================
+
+.. automodule:: product.admin
+   :members:
+   :show-inheritance:
+   :undoc-members:

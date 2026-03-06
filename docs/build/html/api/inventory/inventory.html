@@ -1,0 +1,432 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>inventory package &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" />
+    <link rel="next" title="inventory.migrations package" href="inventory.migrations.html" />
+    <link rel="prev" title="inventory" href="modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../HealthAndHouse/modules.html">HealthAndHouse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../accounts/modules.html">accounts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dashboard/modules.html">dashboard</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">inventory</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">inventory package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.migrations.html">inventory.migrations package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.admin.html">inventory.admin module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.apps.html">inventory.apps module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.forms.html">inventory.forms module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.models.html">inventory.models module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.services.html">inventory.services module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.tests.html">inventory.tests module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.urls.html">inventory.urls module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.views.html">inventory.views module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-inventory">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../CashRegister/modules.html">CashRegister</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sale/modules.html">sale</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../supplier/modules.html">supplier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reports/modules.html">reports</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">inventory</a></li>
+      <li class="breadcrumb-item active">inventory package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/inventory/inventory.rst.txt" rel="nofollow"> Ver código fuente de la página</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="inventory-package">
+<h1>inventory package<a class="headerlink" href="#inventory-package" title="Link to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="inventory.migrations.html">inventory.migrations package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="inventory.migrations.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.migrations.0001_initial.html">inventory.migrations.0001_initial module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.migrations.0001_initial.html#inventory.migrations.0001_initial.Migration"><code class="docutils literal notranslate"><span class="pre">Migration</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.migrations.0002_alter_inventorymovement_tipo_movimiento_and_more.html">inventory.migrations.0002_alter_inventorymovement_tipo_movimiento_and_more module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.migrations.0002_alter_inventorymovement_tipo_movimiento_and_more.html#inventory.migrations.0002_alter_inventorymovement_tipo_movimiento_and_more.Migration"><code class="docutils literal notranslate"><span class="pre">Migration</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.migrations.0003_inventoryperiodsnapshot_inventoryperiodsnapshotitem.html">inventory.migrations.0003_inventoryperiodsnapshot_inventoryperiodsnapshotitem module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.migrations.0003_inventoryperiodsnapshot_inventoryperiodsnapshotitem.html#inventory.migrations.0003_inventoryperiodsnapshot_inventoryperiodsnapshotitem.Migration"><code class="docutils literal notranslate"><span class="pre">Migration</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.migrations.0004_inventorymovement_period_and_more.html">inventory.migrations.0004_inventorymovement_period_and_more module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.migrations.0004_inventorymovement_period_and_more.html#inventory.migrations.0004_inventorymovement_period_and_more.Migration"><code class="docutils literal notranslate"><span class="pre">Migration</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.migrations.0005_inventoryperiodsnapshot_is_empty.html">inventory.migrations.0005_inventoryperiodsnapshot_is_empty module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.migrations.0005_inventoryperiodsnapshot_is_empty.html#inventory.migrations.0005_inventoryperiodsnapshot_is_empty.Migration"><code class="docutils literal notranslate"><span class="pre">Migration</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.migrations.0006_remove_inventoryperiodsnapshot_is_empty.html">inventory.migrations.0006_remove_inventoryperiodsnapshot_is_empty module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.migrations.0006_remove_inventoryperiodsnapshot_is_empty.html#inventory.migrations.0006_remove_inventoryperiodsnapshot_is_empty.Migration"><code class="docutils literal notranslate"><span class="pre">Migration</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.migrations.0007_alter_inventory_options_and_more.html">inventory.migrations.0007_alter_inventory_options_and_more module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.migrations.0007_alter_inventory_options_and_more.html#inventory.migrations.0007_alter_inventory_options_and_more.Migration"><code class="docutils literal notranslate"><span class="pre">Migration</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.migrations.html#module-inventory.migrations">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="inventory.admin.html">inventory.admin module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inventory.apps.html">inventory.apps module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="inventory.apps.html#inventory.apps.InventoryConfig"><code class="docutils literal notranslate"><span class="pre">InventoryConfig</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.apps.html#inventory.apps.InventoryConfig.default_auto_field"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.default_auto_field</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.apps.html#inventory.apps.InventoryConfig.name"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.name</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inventory.forms.html">inventory.forms module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm.Meta"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm.Meta</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm.Meta.fields"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm.Meta.fields</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm.Meta.model"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm.Meta.model</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm.PERIOD_CHOICES"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm.PERIOD_CHOICES</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm.base_fields"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm.base_fields</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm.clean"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm.clean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm.declared_fields"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm.declared_fields</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm.media"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm.media</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryConfigForm.save"><code class="docutils literal notranslate"><span class="pre">InventoryConfigForm.save()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryInitialImportForm"><code class="docutils literal notranslate"><span class="pre">InventoryInitialImportForm</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryInitialImportForm.base_fields"><code class="docutils literal notranslate"><span class="pre">InventoryInitialImportForm.base_fields</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryInitialImportForm.clean_file"><code class="docutils literal notranslate"><span class="pre">InventoryInitialImportForm.clean_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryInitialImportForm.declared_fields"><code class="docutils literal notranslate"><span class="pre">InventoryInitialImportForm.declared_fields</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryInitialImportForm.media"><code class="docutils literal notranslate"><span class="pre">InventoryInitialImportForm.media</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryMoveForm"><code class="docutils literal notranslate"><span class="pre">InventoryMoveForm</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryMoveForm.base_fields"><code class="docutils literal notranslate"><span class="pre">InventoryMoveForm.base_fields</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryMoveForm.clean"><code class="docutils literal notranslate"><span class="pre">InventoryMoveForm.clean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryMoveForm.declared_fields"><code class="docutils literal notranslate"><span class="pre">InventoryMoveForm.declared_fields</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.InventoryMoveForm.media"><code class="docutils literal notranslate"><span class="pre">InventoryMoveForm.media</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.forms.html#inventory.forms.LotTransferForm"><code class="docutils literal notranslate"><span class="pre">LotTransferForm</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.LotTransferForm.base_fields"><code class="docutils literal notranslate"><span class="pre">LotTransferForm.base_fields</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.LotTransferForm.clean"><code class="docutils literal notranslate"><span class="pre">LotTransferForm.clean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.LotTransferForm.declared_fields"><code class="docutils literal notranslate"><span class="pre">LotTransferForm.declared_fields</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.forms.html#inventory.forms.LotTransferForm.media"><code class="docutils literal notranslate"><span class="pre">LotTransferForm.media</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inventory.models.html">inventory.models module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory"><code class="docutils literal notranslate"><span class="pre">Inventory</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.DoesNotExist"><code class="docutils literal notranslate"><span class="pre">Inventory.DoesNotExist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.MultipleObjectsReturned"><code class="docutils literal notranslate"><span class="pre">Inventory.MultipleObjectsReturned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.avg_unit_cost"><code class="docutils literal notranslate"><span class="pre">Inventory.avg_unit_cost</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.get_next_by_updated_at"><code class="docutils literal notranslate"><span class="pre">Inventory.get_next_by_updated_at()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.get_previous_by_updated_at"><code class="docutils literal notranslate"><span class="pre">Inventory.get_previous_by_updated_at()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.id_inventory"><code class="docutils literal notranslate"><span class="pre">Inventory.id_inventory</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.location"><code class="docutils literal notranslate"><span class="pre">Inventory.location</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.location_id"><code class="docutils literal notranslate"><span class="pre">Inventory.location_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.max_stock"><code class="docutils literal notranslate"><span class="pre">Inventory.max_stock</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.min_stock"><code class="docutils literal notranslate"><span class="pre">Inventory.min_stock</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.objects"><code class="docutils literal notranslate"><span class="pre">Inventory.objects</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.product"><code class="docutils literal notranslate"><span class="pre">Inventory.product</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.product_id"><code class="docutils literal notranslate"><span class="pre">Inventory.product_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.quantity"><code class="docutils literal notranslate"><span class="pre">Inventory.quantity</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Inventory.updated_at"><code class="docutils literal notranslate"><span class="pre">Inventory.updated_at</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig"><code class="docutils literal notranslate"><span class="pre">InventoryConfig</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.DoesNotExist"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.DoesNotExist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.FISCAL_PERIOD_CHOICES"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.FISCAL_PERIOD_CHOICES</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.FISCAL_SEMESTRAL"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.FISCAL_SEMESTRAL</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.MultipleObjectsReturned"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.MultipleObjectsReturned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.descripcion"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.descripcion</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.fecha_corte"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.fecha_corte</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.fiscal_period"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.fiscal_period</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.get_fiscal_period_display"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.get_fiscal_period_display()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.get_next_by_fecha_corte"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.get_next_by_fecha_corte()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.get_previous_by_fecha_corte"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.get_previous_by_fecha_corte()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.id"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.inventoryperiodsnapshot_set"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.inventoryperiodsnapshot_set</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.is_active"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.is_active</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.main_location"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.main_location</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.main_location_id"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.main_location_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.movements"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.movements</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryConfig.objects"><code class="docutils literal notranslate"><span class="pre">InventoryConfig.objects</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.DoesNotExist"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.DoesNotExist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.MultipleObjectsReturned"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.MultipleObjectsReturned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.created_at"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.created_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.created_by"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.created_by</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.created_by_id"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.created_by_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.file_name"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.file_name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.get_next_by_created_at"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.get_next_by_created_at()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.get_previous_by_created_at"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.get_previous_by_created_at()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.id"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.notes"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.notes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.objects"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.objects</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryInitialBatch.total_items"><code class="docutils literal notranslate"><span class="pre">InventoryInitialBatch.total_items</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement"><code class="docutils literal notranslate"><span class="pre">InventoryMovement</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.DoesNotExist"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.DoesNotExist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MovementType"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MovementType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MovementType.ADJIN"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MovementType.ADJIN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MovementType.ADJOUT"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MovementType.ADJOUT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MovementType.INI"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MovementType.INI</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MovementType.OPEN"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MovementType.OPEN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MovementType.PUR"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MovementType.PUR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MovementType.SAL"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MovementType.SAL</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MovementType.TIN"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MovementType.TIN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MovementType.TOUT"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MovementType.TOUT</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.MultipleObjectsReturned"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.MultipleObjectsReturned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.created_by"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.created_by</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.created_by_id"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.created_by_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.descripcion"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.descripcion</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.entrada_cantidad"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.entrada_cantidad</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.entrada_valor"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.entrada_valor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.fecha"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.fecha</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.get_next_by_fecha"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.get_next_by_fecha()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.get_previous_by_fecha"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.get_previous_by_fecha()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.get_tipo_movimiento_display"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.get_tipo_movimiento_display()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.id_movement"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.id_movement</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.location"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.location</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.location_id"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.location_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.lot"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.lot</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.lot_id"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.lot_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.objects"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.objects</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.period"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.period</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.period_id"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.period_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.product"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.product</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.product_id"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.product_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.proveedor"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.proveedor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.proveedor_id"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.proveedor_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.saldo_cantidad"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.saldo_cantidad</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.saldo_valor"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.saldo_valor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.salida_cantidad"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.salida_cantidad</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.salida_valor"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.salida_valor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.tipo_movimiento"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.tipo_movimiento</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.unidad"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.unidad</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryMovement.valor_unitario"><code class="docutils literal notranslate"><span class="pre">InventoryMovement.valor_unitario</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.DoesNotExist"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.DoesNotExist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.MultipleObjectsReturned"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.MultipleObjectsReturned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.creado_por"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.creado_por</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.created_at"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.created_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.cutoff_ts"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.cutoff_ts</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.get_next_by_created_at"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.get_next_by_created_at()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.get_next_by_cutoff_ts"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.get_next_by_cutoff_ts()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.get_previous_by_created_at"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.get_previous_by_created_at()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.get_previous_by_cutoff_ts"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.get_previous_by_cutoff_ts()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.id"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.inventoryperiodsnapshotitem_set"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.inventoryperiodsnapshotitem_set</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.objects"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.objects</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.periodo"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.periodo</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshot.periodo_id"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshot.periodo_id</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.DoesNotExist"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.DoesNotExist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.MultipleObjectsReturned"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.MultipleObjectsReturned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.expiry"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.expiry</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.id"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.id_location"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.id_location</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.id_location_id"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.id_location_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.id_lot"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.id_lot</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.id_lot_id"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.id_lot_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.id_product"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.id_product</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.id_product_id"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.id_product_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.objects"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.objects</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.qty"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.qty</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.snapshot"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.snapshot</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.snapshot_id"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.snapshot_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.total_cost"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.total_cost</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.InventoryPeriodSnapshotItem.unit_cost"><code class="docutils literal notranslate"><span class="pre">InventoryPeriodSnapshotItem.unit_cost</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.Location"><code class="docutils literal notranslate"><span class="pre">Location</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.DoesNotExist"><code class="docutils literal notranslate"><span class="pre">Location.DoesNotExist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.MultipleObjectsReturned"><code class="docutils literal notranslate"><span class="pre">Location.MultipleObjectsReturned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.cash_sessions"><code class="docutils literal notranslate"><span class="pre">Location.cash_sessions</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.code"><code class="docutils literal notranslate"><span class="pre">Location.code</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.id_location"><code class="docutils literal notranslate"><span class="pre">Location.id_location</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.inventory_main"><code class="docutils literal notranslate"><span class="pre">Location.inventory_main</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.inventory_set"><code class="docutils literal notranslate"><span class="pre">Location.inventory_set</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.inventorymovement_set"><code class="docutils literal notranslate"><span class="pre">Location.inventorymovement_set</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.inventoryperiodsnapshotitem_set"><code class="docutils literal notranslate"><span class="pre">Location.inventoryperiodsnapshotitem_set</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.lotstock_set"><code class="docutils literal notranslate"><span class="pre">Location.lotstock_set</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.name"><code class="docutils literal notranslate"><span class="pre">Location.name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.Location.objects"><code class="docutils literal notranslate"><span class="pre">Location.objects</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock"><code class="docutils literal notranslate"><span class="pre">LotStock</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock.DoesNotExist"><code class="docutils literal notranslate"><span class="pre">LotStock.DoesNotExist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock.MultipleObjectsReturned"><code class="docutils literal notranslate"><span class="pre">LotStock.MultipleObjectsReturned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock.id_lot_stock"><code class="docutils literal notranslate"><span class="pre">LotStock.id_lot_stock</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock.location"><code class="docutils literal notranslate"><span class="pre">LotStock.location</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock.location_id"><code class="docutils literal notranslate"><span class="pre">LotStock.location_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock.lot"><code class="docutils literal notranslate"><span class="pre">LotStock.lot</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock.lot_id"><code class="docutils literal notranslate"><span class="pre">LotStock.lot_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock.objects"><code class="docutils literal notranslate"><span class="pre">LotStock.objects</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.LotStock.quantity"><code class="docutils literal notranslate"><span class="pre">LotStock.quantity</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot"><code class="docutils literal notranslate"><span class="pre">ProductLot</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.DoesNotExist"><code class="docutils literal notranslate"><span class="pre">ProductLot.DoesNotExist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.MultipleObjectsReturned"><code class="docutils literal notranslate"><span class="pre">ProductLot.MultipleObjectsReturned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.expire_date"><code class="docutils literal notranslate"><span class="pre">ProductLot.expire_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.get_next_by_expire_date"><code class="docutils literal notranslate"><span class="pre">ProductLot.get_next_by_expire_date()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.get_previous_by_expire_date"><code class="docutils literal notranslate"><span class="pre">ProductLot.get_previous_by_expire_date()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.id_lot"><code class="docutils literal notranslate"><span class="pre">ProductLot.id_lot</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.inventorymovement_set"><code class="docutils literal notranslate"><span class="pre">ProductLot.inventorymovement_set</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.inventoryperiodsnapshotitem_set"><code class="docutils literal notranslate"><span class="pre">ProductLot.inventoryperiodsnapshotitem_set</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.lot_code"><code class="docutils literal notranslate"><span class="pre">ProductLot.lot_code</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.lotstock_set"><code class="docutils literal notranslate"><span class="pre">ProductLot.lotstock_set</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.objects"><code class="docutils literal notranslate"><span class="pre">ProductLot.objects</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.product"><code class="docutils literal notranslate"><span class="pre">ProductLot.product</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="inventory.models.html#inventory.models.ProductLot.product_id"><code class="docutils literal notranslate"><span class="pre">ProductLot.product_id</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.models.html#inventory.models.validate_cutoff_for_movement"><code class="docutils literal notranslate"><span class="pre">validate_cutoff_for_movement()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inventory.services.html">inventory.services module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="inventory.services.html#inventory.services.aplicar_snapshot_al_periodo_activo"><code class="docutils literal notranslate"><span class="pre">aplicar_snapshot_al_periodo_activo()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.services.html#inventory.services.cerrar_periodo_snapshot"><code class="docutils literal notranslate"><span class="pre">cerrar_periodo_snapshot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.services.html#inventory.services.construir_snapshot_desde_movimientos_periodo"><code class="docutils literal notranslate"><span class="pre">construir_snapshot_desde_movimientos_periodo()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.services.html#inventory.services.get_active_period"><code class="docutils literal notranslate"><span class="pre">get_active_period()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="inventory.services.html#inventory.services.get_previous_period"><code class="docutils literal notranslate"><span class="pre">get_previous_period()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inventory.tests.html">inventory.tests module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inventory.urls.html">inventory.urls module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inventory.views.html">inventory.views module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="inventory.views.html#inventory.views.require_active_inventory_config"><code class="docutils literal notranslate"><span class="pre">require_active_inventory_config()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="module-inventory">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-inventory" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Pie de página">
+        <a href="modules.html" class="btn btn-neutral float-left" title="inventory" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Anterior</a>
+        <a href="inventory.migrations.html" class="btn btn-neutral float-right" title="inventory.migrations package" accesskey="n" rel="next">Siguiente <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

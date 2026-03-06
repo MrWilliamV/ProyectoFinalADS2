@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Ahora con nginx{% endblock %}
+
+{% block content %}
+
+{% with role=request.user.groups.all.0 %}
+<div class="flex justify-center items-center">
+    <h1 class=" text-4xl text-center">Bienvenido. Elija la opción deseada.</h1>
+</div>
+
+<div class="divider"></div>
+
+<div class="grid grid-cols-6 gap-4">
+    {% for op in options %}
+
+      {% if op.children %}
+        {% if role and role.name == "ADMINISTRADOR" %}
+          {# ADMIN: mantener dropdown #}
+          <details class="dropdown dropdown-bottom group">
+              <summary class="card relative w-50 h-50 bg-base-100 card-xs shadow-sm cursor-pointer [&::-webkit-details-marker]:hidden" role="button">
+                  <div class="btn card-body">
+                      <h2 class="card-title">{{ op.titulo }}</h2>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                           viewBox="0 0 24 24" stroke-width="1.5"
+                           stroke="currentColor" class="size-6">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="{{ op.icono }}"/>
+                      </svg>
+                  </div>
+
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                       viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                       class="size-5 absolute right-2 top-2 opacity-70 transition-transform duration-200 ease-out group-open:rotate-180">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                  </svg>
+              </summary>
+
+              <ul class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow-sm">
+                  {% for ch in op.children %}
+                  <li>
+                      <a href="{% url ch.url %}" class="flex items-center gap-2 whitespace-nowrap">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                               viewBox="0 0 24 24" stroke-width="1.5"
+                               stroke="currentColor" class="size-5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="{{ ch.icono }}"/>
+                          </svg>
+                          <span>{{ ch.titulo }}</span>
+                      </a>
+                  </li>
+                  {% endfor %}
+              </ul>
+          </details>
+        {% else %}
+          {# NO ADMIN: desglosar cada hijo como tarjeta normal #}
+          {% for ch in op.children %}
+            <a href="{% url ch.url %}" class="card w-50 h-50 bg-base-100 card-xs shadow-sm">
+                <div class="btn card-body">
+                    <h2 class="card-title">{{ ch.titulo }}</h2>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                         viewBox="0 0 24 24" stroke-width="1.5"
+                         stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ ch.icono }}"/>
+                    </svg>
+                </div>
+            </a>
+          {% endfor %}
+        {% endif %}
+      {% else %}
+        {# Opción simple sin hijos #}
+        <a href="{% url op.url %}" class="card w-50 h-50 bg-base-100 card-xs shadow-sm">
+            <div class="btn card-body">
+                <h2 class="card-title">{{ op.titulo }}</h2>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                     viewBox="0 0 24 24" stroke-width="1.5"
+                     stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ op.icono }}"/>
+                </svg>
+            </div>
+        </a>
+      {% endif %}
+
+    {% endfor %}
+</div>
+{% endwith %}
+
+{% endblock %}

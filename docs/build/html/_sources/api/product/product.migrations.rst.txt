@@ -1,0 +1,20 @@
+product.migrations package
+==========================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   product.migrations.0001_initial
+   product.migrations.0002_remove_product_expire_date
+   product.migrations.0003_alter_brand_id_brand_alter_category_id_category_and_more
+
+Module contents
+---------------
+
+.. automodule:: product.migrations
+   :members:
+   :show-inheritance:
+   :undoc-members:

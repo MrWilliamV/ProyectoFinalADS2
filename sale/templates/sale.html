@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %} Ventas {% endblock %}
+{% block content %}
+
+<h1 class=" text-4xl">Realizar una venta</h1>
+{% if messages %}
+<div class="my-2 space-y-2">
+    {% for m in messages %}
+    <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+        <span>{{ m }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="p-1.5">
+    <h1 class="text-2xl mb-2">Buscar un item</h1>
+    <h1 class="text-2xl mb-4">Venta total: Q {{ total|floatformat:2 }}</h1>
+
+    <div class="flex items-center justify-between">
+        <form method="POST" action="{% url 'add_product_by_barcode' %}" class="flex gap-3 items-center">
+            {% csrf_token %}
+            <label class="input">
+                <input name="id_product" type="number" placeholder="Buscar codigo de barras..." class="w-64" required>
+            </label>
+
+            <label class="input">
+                <input name="quantity" type="number" min="1" value="1" class="w-24" required>
+            </label>
+
+            <button class="btn btn-outline">Agregar</button>
+        </form>
+
+
+        <div class="flex gap-2">
+            <button class="btn btn-primary" onclick="modal_make_a_sale.showModal()" {% if not cart %} disabled {% endif %}>
+                Realizar venta
+            </button>
+
+            <form method="GET" action="{% url 'sales' %}">
+                <button class="btn btn-primary">
+                    Realizar otra venta
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="overflow-x-auto">
+        <table class="table table-zebra">
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Cantidad</th>
+                    <th>Precio (Q)</th>
+                    <th>Sub total (Q)</th>
+                    <th>Opciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart %}
+                <tr>
+                    <th>{{ forloop.counter }}</th>
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.qty }}</td>
+                    <td>Q {{ item.price|floatformat:2 }}</td>
+                    <td>Q {{ item.subtotal|floatformat:2 }}</td>
+                    <td>
+                        <div class="flex">
+                            <form method="POST" action="{% url 'add_qty' item.id %}">
+                                {% csrf_token %}
+                                <button class="btn btn-square btn-ghost" title="Agregar uno más">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                         stroke-width="1.5" stroke="currentColor" class="size-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                    </svg>
+                                </button>
+                            </form>
+
+                            <form method="POST" action="{% url 'dec_qty' item.id %}">
+                                {% csrf_token %}
+                                <button class="btn btn-square btn-ghost" title="Quitar uno">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                         stroke-width="1.5" stroke="currentColor" class="size-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                    </svg>
+                                </button>
+                            </form>
+
+                            <form method="POST" action="{% url 'remove_product_from_cart' item.id %}">
+                                {% csrf_token %}
+                                <button class="btn btn-square btn-ghost text-error" title="Eliminar producto">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                         stroke-width="1.5" stroke="currentColor" class="size-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">Sin productos</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<dialog id="modal_make_a_sale" class="modal">
+    <div class="modal-box">
+        <h3 class="text-lg font-bold">Venta al contado</h3>
+
+        {# FORM que SÍ se envía al servidor #}
+        <form method="POST" action="{% url 'make_a_sale' %}" id="form_make_sale" class="space-y-3">
+            {% csrf_token %}
+
+            <label class="form-control">
+                <div class="label"><span class="label-text">Efectivo recibido (Q)</span></div>
+                <input id="input_client_cash"
+                       name="cash_received"
+                       type="number" step="0.01" min="0"
+                       value="{{ total|floatformat:2 }}"
+                       class="input input-bordered w-full" required>
+            </label>
+
+            <div class="divider"></div>
+
+            <div class="space-y-1">
+                <div class="flex justify-between">
+                    <span class="font-semibold">Total:</span>
+                    <span id="total_span" class="font-bold">Q {{ total|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold">Pago:</span>
+                    <span id="pago_span">Q 0.00</span>
+                </div>
+                <div class="flex justify-between">
+                    <span id="change_label" class="font-semibold">Cambio:</span>
+                    <span id="change_span" class="font-semibold">Q 0.00</span>
+                </div>
+            </div>
+
+            <div class="modal-action flex justify-end gap-4">
+                <button id="btn_make_a_sale" onclick="modal_make_a_sale.close()" class="btn btn-primary" {% if not cart %}disabled{% endif %}>
+                    Terminar venta
+                </button>
+                <button type="button" class="btn btn-ghost" onclick="modal_make_a_sale.close()">Cancelar</button>
+            </div>
+        </form>
+
+        <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                onclick="modal_make_a_sale.close()">✕
+        </button>
+    </div>
+
+    <script>
+        (function () {
+            const total = parseFloat('{{ total|floatformat:2 }}') || 0;
+            const $input = document.getElementById('input_client_cash');
+            const $pago = document.getElementById('pago_span');
+            const $cambio = document.getElementById('change_span');
+            const $label = document.getElementById('change_label');
+            const $submit = document.getElementById('btn_make_a_sale');
+
+            const fmt = n => 'Q ' + (isFinite(n) ? Number(n).toFixed(2) : '0.00');
+
+            function actualizar() {
+                const pago = parseFloat(String($input.value).replace(',', '.')) || 0;
+                const diff = pago - total;
+
+                $pago.textContent = fmt(pago);
+
+                if (diff >= 0) {
+                    $label.textContent = 'Cambio:';
+                    $cambio.textContent = fmt(diff);
+                    $cambio.classList.remove('text-error');
+                    $cambio.classList.add('text-success');
+                    $submit.disabled = pago < total;
+                } else {
+                    $label.textContent = 'Falta:';
+                    $cambio.textContent = fmt(Math.abs(diff));
+                    $cambio.classList.remove('text-success');
+                    $cambio.classList.add('text-error');
+                    $submit.disabled = true;
+                }
+            }
+
+            $input.addEventListener('input', actualizar);
+            actualizar();
+        })();
+    </script>
+</dialog>
+
+
+{% endblock %}

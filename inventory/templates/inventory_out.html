@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold">Salida por lote</h1>
+            <p class="text-sm opacity-70">
+                Registra salidas por <span class="font-medium">lote</span>. El costo usa el <span class="font-medium">promedio vigente</span>.
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'inventory' %}" class="btn btn-ghost">Ir a Entradas</a>
+            <a href="{% url 'inventory_out' %}" class="btn btn-outline">Recargar</a>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="space-y-2">
+        {% for m in messages %}
+        <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+            <span>{{ m }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Form -->
+        <div class="lg:col-span-2">
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title">Nueva salida</h2>
+
+                    {% if form_lotout.non_field_errors %}
+                    <div class="alert alert-error"><span>{{ form_lotout.non_field_errors }}</span></div>
+                    {% endif %}
+
+                    <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% csrf_token %}
+
+                        <!-- Product -->
+                        <label class="form-control w-full">
+                            <div class="label">
+                                <span class="label-text">Producto</span>
+                                {% if form_lotout.product.errors %}
+                                <span class="label-text-alt text-error">{{ form_lotout.product.errors|striptags }}</span>
+                                {% endif %}
+                            </div>
+                            <select name="product" id="{{ form_lotout.product.id_for_label }}"
+                                    class="select select-bordered w-full" required>
+                                <option value="" disabled {% if not form_lotout.product.value %}selected{% endif %}>
+                                    Seleccione…
+                                </option>
+                                {% for p in form_lotout.fields.product.queryset %}
+                                <option value="{{ p.pk }}">
+                                    {{ p.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </label>
+
+                        <!-- Location -->
+                        <label class="form-control w-full">
+                            <div class="label">
+                                <span class="label-text">Ubicación</span>
+                                {% if form_lotout.location.errors %}
+                                <span class="label-text-alt text-error">{{ form_lotout.location.errors|striptags }}</span>
+                                {% endif %}
+                            </div>
+                            <select name="location" id="{{ form_lotout.location.id_for_label }}"
+                                    class="select select-bordered w-full" required>
+                                <option value="" disabled {% if not form_lotout.location.value %}selected{% endif %}>
+                                    Seleccione…
+                                </option>
+                                {% for loc in form_lotout.fields.location.queryset %}
+                                <option value="{{ loc.pk }}">
+                                    {{ loc.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </label>
+
+                        <!-- Lot -->
+                        <label class="form-control w-full">
+                            <div class="label">
+                                <span class="label-text">Código de lote</span>
+                                {% if form_lotout.lot_code.errors %}
+                                <span class="label-text-alt text-error">{{ form_lotout.lot_code.errors|striptags }}</span>
+                                {% endif %}
+                            </div>
+                            <input type="text" name="lot_code" id="{{ form_lotout.lot_code.id_for_label }}"
+                                   value="{{ form_lotout.lot_code.value|default_if_none:'' }}"
+                                   class="input input-bordered w-full" placeholder="Ej. LOTE-ABC-001" required>
+                        </label>
+
+                        <!-- Qty (out) -->
+                        <label class="form-control w-full">
+                            <div class="label">
+                                <span class="label-text">Cantidad (Salida)</span>
+                                {% if form_lotout.cantidad.errors %}
+                                <span class="label-text-alt text-error">{{ form_lotout.cantidad.errors|striptags }}</span>
+                                {% endif %}
+                            </div>
+                            <input type="number" step="0.01" min="0.01" name="cantidad"
+                                   id="{{ form_lotout.cantidad.id_for_label }}"
+                                   value="{{ form_lotout.cantidad.value|default_if_none:'' }}"
+                                   class="input input-bordered w-full" placeholder="1.00" required>
+                            <div class="label"><span class="label-text-alt opacity-70">Usa decimales si aplica (ej. 1.50)</span>
+                            </div>
+                        </label>
+
+                        <!-- Unit -->
+                        <label class="form-control w-full">
+                            <div class="label">
+                                <span class="label-text">Unidad</span>
+                                {% if form_lotout.unidad.errors %}
+                                <span class="label-text-alt text-error">{{ form_lotout.unidad.errors|striptags }}</span>
+                                {% endif %}
+                            </div>
+                            <select name="unidad" id="{{ form_lotout.unidad.id_for_label }}"
+                                    class="select select-bordered w-full" required>
+                                {% for val,label in form_lotout.fields.unidad.choices %}
+                                <option value="{{ val }}" {% if form_lotout.unidad.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+
+                        <label class="form-control w-full md:col-span-2">
+                            <div class="label">
+                                <span class="label-text">Descripción</span>
+                                {% if form_lotout.descripcion.errors %}
+                                <span class="label-text-alt text-error">{{ form_lotout.descripcion.errors|striptags }}</span>
+                                {% endif %}
+                            </div>
+                            <textarea name="descripcion" id="{{ form_lotout.descripcion.id_for_label }}"
+                                      class="textarea textarea-bordered min-h-24"
+                                      placeholder="Ej. Salida por venta / ticket 123">{{ form_lotout.descripcion.value|default_if_none:'' }}</textarea>
+                        </label>
+
+                        <!-- Actions -->
+                        <div class="md:col-span-2 card-actions justify-end mt-2">
+                            <button type="submit" class="btn btn-primary">Registrar salida</button>
+                            <a href="{% url 'inventory_out' %}" class="btn btn-ghost">Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <aside class="space-y-6">
+            {% if summary %}
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title">Resumen</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div class="stat">
+                            <div class="stat-title">Producto</div>
+                            <div class="stat-value text-lg">{{ summary.product.name }}</div>
+                            <div class="stat-desc">Ubicación: {{ summary.location.name }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Lote</div>
+                            <div class="stat-value text-lg">{{ summary.lot.lot_code }}</div>
+                            <div class="stat-desc">Stock lote: {{ summary.lot_qty }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Inventario</div>
+                            <div class="stat-value text-lg">{{ summary.inv_qty }}</div>
+                            <div class="stat-desc">Costo prom.: {{ summary.avg_cost }}</div>
+                        </div>
+                    </div>
+
+                    {% if summary.movement %}
+                    <div class="overflow-x-auto mt-4">
+                        <table class="table table-zebra">
+                            <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th class="text-right">Unit</th>
+                                <th class="text-right">Ent. (Cant / Valor)</th>
+                                <th class="text-right">Sal. (Cant / Valor)</th>
+                                <th class="text-right">Saldo (Cant / Valor)</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>{{ summary.movement.fecha|date:"Y-m-d H:i" }}</td>
+                                <td>{{ summary.movement.get_tipo_movimiento_display }}</td>
+                                <td>{{ summary.movement.descripcion }}</td>
+                                <td class="text-right">{{ summary.movement.valor_unitario }}</td>
+                                <td class="text-right">
+                                    {{ summary.movement.entrada_cantidad }} /
+                                    {{ summary.movement.entrada_valor }}
+                                </td>
+                                <td class="text-right">
+                                    {{ summary.movement.salida_cantidad }} /
+                                    {{ summary.movement.salida_valor }}
+                                </td>
+                                <td class="text-right">
+                                    {{ summary.movement.saldo_cantidad }} /
+                                    {{ summary.movement.saldo_valor }}
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title">Ayuda</h3>
+                    <ul class="list-disc pl-5 space-y-1 text-sm opacity-90">
+                        <li>La salida usa el <b>costo promedio</b> vigente del producto en la ubicación.</li>
+                        <li>Debes indicar el <b>código de lote</b> del cual saldrá el producto.</li>
+                        <li>Si la cantidad supera el stock del lote, aparecerá un error.</li>
+                        <li>Para FEFO, divide la salida entre lotes según su vencimiento (funcionalidad extendida).</li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </aside>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+  <h1 class="text-2xl font-bold">
+    {% if suppliers %}Editar proveedor{% else %}Nuevo proveedor{% endif %}
+  </h1>
+
+  {% if messages %}
+    <div class="space-y-2">
+      {% for m in messages %}
+        <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+          {{ m }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        {{ form.name.label_tag }} {{ form.name }}
+        {% if form.name.errors %}<div class="text-error text-sm">{{ form.name.errors }}</div>{% endif %}
+      </div>
+      <div>
+        {{ form.phone.label_tag }} {{ form.phone }}
+        {% if form.phone.errors %}<div class="text-error text-sm">{{ form.phone.errors }}</div>{% endif %}
+      </div>
+      <div>
+        {{ form.email.label_tag }} {{ form.email }}
+        {% if form.email.errors %}<div class="text-error text-sm">{{ form.email.errors }}</div>{% endif %}
+      </div>
+      <div>
+        {{ form.country.label_tag }} {{ form.country }}
+        {% if form.country.errors %}<div class="text-error text-sm">{{ form.country.errors }}</div>{% endif %}
+      </div>
+      <div class="md:col-span-2">
+        {{ form.city.label_tag }} {{ form.city }}
+        {% if form.city.errors %}<div class="text-error text-sm">{{ form.city.errors }}</div>{% endif %}
+      </div>
+      <div class="md:col-span-2">
+        {{ form.notes.label_tag }} {{ form.notes }}
+        {% if form.notes.errors %}<div class="text-error text-sm">{{ form.notes.errors }}</div>{% endif %}
+      </div>
+      <div class="md:col-span-2">
+        <label class="label cursor-pointer gap-2">
+          {{ form.active }} <span>Activo</span>
+        </label>
+        {% if form.active.errors %}<div class="text-error text-sm">{{ form.active.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button class="btn btn-primary">Guardar</button>
+      <a class="btn btn-ghost" href="{% url 'list_suppliers' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

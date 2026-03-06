@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% if no_active_period %}
+<div class="alert alert-warning mt-4">
+  <span>No hay periodo contable activo. Configure la fecha de corte y abra un nuevo periodo para ver el inventario.</span>
+</div>
+{% else %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+            <h1 class="text-3xl font-bold">Inventario por lote</h1>
+            <p class="text-sm opacity-70">Vista detallada por <b>lote + ubicación</b> con costo promedio vigente.</p>
+        </div>
+
+        <!-- Filters -->
+        <form method="get" class="flex flex-col md:flex-row gap-2 md:items-end">
+            <label class="form-control">
+                <div class="label"><span class="label-text">Ubicación</span></div>
+                <select name="location" class="select select-bordered w-56">
+                    <option value="">Todas</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc.id_location }}" {% if current_location == loc.id_location %}selected{% endif %} >
+                    {{ loc.name }} ({{ loc.code }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label class="form-control">
+                <div class="label"><span class="label-text">Buscar</span></div>
+                <input type="text" name="q" value="{{ search|default_if_none:'' }}"
+                       placeholder="Nombre o codigo de lote" class="input input-bordered w-72"/>
+            </label>
+
+            <button class="btn btn-primary md:ml-2">Filtrar</button>
+            <a href="{% url 'see_inventory' %}" class="btn btn-ghost">Limpiar</a>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                    <tr>
+                        <th class="whitespace-nowrap">ID</th>
+                        <th class="whitespace-nowrap">ID producto</th>
+                        <th class="whitespace-nowrap">Codigo lote</th>
+                        <th>Nombre</th>
+                        <th class="text-right whitespace-nowrap">Precio</th>
+                        <th class="text-right whitespace-nowrap">Cantidad</th>
+                        <th class="whitespace-nowrap">Vence</th>
+                        <th class="whitespace-nowrap">Actualizado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in page_obj %}
+                    <tr>
+                        <td class="font-mono text-xs">{{ row.row_id }}</td>
+                        <td class="font-mono text-xs">{{ row.product_id }}</td>
+                        <td class="font-mono text-xs">{{ row.lot_code }}</td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium">{{ row.name }}</span>
+                                <span class="badge badge-ghost badge-sm">{{ row.location.code }}</span>
+                            </div>
+                        </td>
+                        <td class="text-right">{{ row.price|default:"—" | floatformat:2}}</td>
+                        <td class="text-right">{{ row.quantity }}</td>
+                        <td>{{ row.expire_date|date:"d-m-Y" }}</td>
+                        <td>{{ row.updated_at|date:"d-m-Y H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-8 opacity-70">No hay registros.</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginator -->
+            <div class="flex items-center justify-between mt-4">
+                <div class="text-sm opacity-70">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                </div>
+                <div class="join">
+                    {% if page_obj.has_previous %}
+                    <a class="join-item btn btn-sm"
+                       href="?{% if current_location %}location={{ current_location }}&{% endif %}{% if search %}q={{ search|urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">«</a>
+                    {% else %}
+                    <button class="join-item btn btn-sm btn-disabled">«</button>
+                    {% endif %}
+
+                    <button class="join-item btn btn-sm btn-ghost"> {{ page_obj.number }}</button>
+
+                    {% if page_obj.has_next %}
+                    <a class="join-item btn btn-sm"
+                       href="?{% if current_location %}location={{ current_location }}&{% endif %}{% if search %}q={{ search|urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">»</a>
+                    {% else %}
+                    <button class="join-item btn btn-sm btn-disabled">»</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endif %}
+
+
+{% endblock %}

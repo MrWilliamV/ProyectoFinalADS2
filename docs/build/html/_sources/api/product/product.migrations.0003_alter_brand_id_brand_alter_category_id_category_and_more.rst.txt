@@ -1,0 +1,7 @@
+product.migrations.0003\_alter\_brand\_id\_brand\_alter\_category\_id\_category\_and\_more module
+=================================================================================================
+
+.. automodule:: product.migrations.0003_alter_brand_id_brand_alter_category_id_category_and_more
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Abrir caja</h1>
+
+{% if messages %}
+  <div class="space-y-2 mb-3">
+    {% for m in messages %}
+      <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+        <span>{{ m }}</span>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {% csrf_token %}
+
+  <label class="form-control">
+    <div class="label"><span class="label-text">Bloque</span></div>
+    <select name="block" class="select select-bordered w-full" required>
+      <option value="AM">08:00–12:00</option>
+      <option value="PM">13:00–18:00</option>
+    </select>
+  </label>
+
+  <label class="form-control">
+    <div class="label"><span class="label-text">Monto de apertura (Q)</span></div>
+    <input type="number" name="opening_amount" step="0.01" min="0" value="1000.00"
+           class="input input-bordered w-full" required>
+    <div class="label"><span class="label-text-alt opacity-70">Por defecto: Q 1000.00</span></div>
+  </label>
+
+  <div class="md:col-span-2 card-actions justify-end">
+    <a href="{% url 'cashbox_status' %}" class="btn btn-ghost">Cancelar</a>
+    <button class="btn btn-primary" type="submit">Abrir caja</button>
+  </div>
+</form>
+{% endblock %}

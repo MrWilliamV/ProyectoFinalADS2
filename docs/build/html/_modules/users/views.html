@@ -1,0 +1,263 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>users.views &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">users.views</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para users.views</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">These views handle all actions related to users:</span>
+<span class="sd">listing, creating, changing roles, activating/deactivating accounts,</span>
+<span class="sd">and showing the current user&#39;s profile.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">login_required</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib</span><span class="w"> </span><span class="kn">import</span> <span class="n">messages</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.shortcuts</span><span class="w"> </span><span class="kn">import</span> <span class="n">render</span><span class="p">,</span> <span class="n">redirect</span><span class="p">,</span> <span class="n">get_object_or_404</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HealthAndHouse.auth_rol</span><span class="w"> </span><span class="kn">import</span> <span class="n">has_role</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">services</span>
+
+<span class="n">ROLE_DESCRIPTIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;Puede acceder a todas las funcionalidades del sistema.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Puede crear, editar y eliminar usuarios.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Puede gestionar inventario, ventas y reportes.&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;VENDEDOR&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;Puede realizar ventas y emitir facturas.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Puede aperturar caja y registrar movimientos de efectivo.&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;AUDITOR&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;Puede exportar reportes de caja, inventario y kardex.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Tiene acceso de solo lectura a la información del sistema.&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;JEFE_ALMACEN&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;Puede ver el inventario y realizar transferencias de stock.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Puede registrar entradas por lote e inventario inicial (cuando hay período previo activo).&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Puede crear, editar o eliminar productos del catálogo.&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">}</span>
+
+<span class="nd">@login_required</span><span class="p">(</span><span class="n">login_url</span><span class="o">=</span><span class="s1">&#39;login&#39;</span><span class="p">)</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">users</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     This view shows active or inactive users depending on the</span>
+<span class="sd">    filter chosen. It also ensures that the default system roles exist.</span>
+
+<span class="sd">    :return: Rendered HTML page showing the user list with role information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">services</span><span class="o">.</span><span class="n">ensure_default_roles</span><span class="p">()</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="s2">&quot;active&quot;</span><span class="p">)</span>
+    <span class="n">users_qs</span> <span class="o">=</span> <span class="n">services</span><span class="o">.</span><span class="n">list_users_by_status</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">)</span>
+    <span class="n">roles</span> <span class="o">=</span> <span class="n">services</span><span class="o">.</span><span class="n">list_roles</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;users.html&quot;</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s2">&quot;users&quot;</span><span class="p">:</span> <span class="n">users_qs</span><span class="p">,</span>
+        <span class="s2">&quot;roles&quot;</span><span class="p">:</span> <span class="n">roles</span><span class="p">,</span>
+        <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">status</span><span class="p">,</span>
+        <span class="s2">&quot;role_descriptions&quot;</span><span class="p">:</span> <span class="n">ROLE_DESCRIPTIONS</span><span class="p">,</span>
+    <span class="p">})</span>
+
+
+<span class="nd">@login_required</span><span class="p">(</span><span class="n">login_url</span><span class="o">=</span><span class="s1">&#39;login&#39;</span><span class="p">)</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_user_role</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">user_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This view receives a POST request with the new role</span>
+<span class="sd">    and updates the corresponding user.</span>
+<span class="sd">    :param request: HTTP request object.</span>
+<span class="sd">    :param user_id: ID of the user to update.</span>
+
+<span class="sd">    :return:  Redirects back to the user list with a success or error message.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">!=</span> <span class="s1">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;users&#39;</span><span class="p">)</span>
+
+    <span class="n">role</span> <span class="o">=</span> <span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;role&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">services</span><span class="o">.</span><span class="n">set_user_single_role</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">user_id</span><span class="p">,</span> <span class="n">role_name</span><span class="o">=</span><span class="n">role</span><span class="p">)</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">get_object_or_404</span><span class="p">(</span><span class="n">User</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="n">user_id</span><span class="p">)</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Rol de </span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2"> actualizado a </span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">services</span><span class="o">.</span><span class="n">RoleNotFound</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;users&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@login_required</span><span class="p">(</span><span class="n">login_url</span><span class="o">=</span><span class="s1">&#39;login&#39;</span><span class="p">)</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_user</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This view handles user creation through a POST form.</span>
+<span class="sd">    It delegates validation and creation logic to the service layer.</span>
+<span class="sd">    :param request: HTTP request object.</span>
+
+<span class="sd">    :return: Redirects back to the user list, showing a success or error message.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">!=</span> <span class="s1">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;users&quot;</span><span class="p">)</span>
+
+    <span class="n">first_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;first_name&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">last_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;last_name&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;email&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;username&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;password&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;role&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">services</span><span class="o">.</span><span class="n">create_user_with_role</span><span class="p">(</span>
+            <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
+            <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">,</span>
+            <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
+            <span class="n">first_name</span><span class="o">=</span><span class="n">first_name</span><span class="p">,</span>
+            <span class="n">last_name</span><span class="o">=</span><span class="n">last_name</span><span class="p">,</span>
+            <span class="n">role_name</span><span class="o">=</span><span class="n">role</span> <span class="k">if</span> <span class="n">role</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;El usuario se ha creado correctamente.&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">services</span><span class="o">.</span><span class="n">UsernameTaken</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+    <span class="k">except</span> <span class="n">services</span><span class="o">.</span><span class="n">RoleNotFound</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;users&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@login_required</span><span class="p">(</span><span class="n">login_url</span><span class="o">=</span><span class="s1">&#39;login&#39;</span><span class="p">)</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_active</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    This view changes a user&#39;s active state based on the value received</span>
+<span class="sd">    in the URL. It converts the value to a boolean and calls the service layer.</span>
+<span class="sd">    :param request: HTTP request object.</span>
+<span class="sd">    :param user_id:  The ID of the user to update.</span>
+<span class="sd">    :param active:  A string (&#39;1&#39;, &#39;0&#39;, &#39;true&#39;, &#39;false&#39;, etc.) indicating the new state.</span>
+<span class="sd">    :return: Redirects to the user list after the change.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">!=</span> <span class="s1">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;users&#39;</span><span class="p">)</span>
+
+    <span class="c1"># active te puede llegar como &quot;0&quot;/&quot;1&quot; o &quot;true&quot;/&quot;false&quot;</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">active</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">new_state</span> <span class="o">=</span> <span class="n">raw</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span> <span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span>
+
+    <span class="n">services</span><span class="o">.</span><span class="n">toggle_active</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">user_id</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="n">new_state</span><span class="p">)</span>
+    <span class="n">messages</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Usuario activado.&quot;</span> <span class="k">if</span> <span class="n">new_state</span> <span class="k">else</span> <span class="s2">&quot;Usuario desactivado.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;users&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="profile">
+<a class="viewcode-back" href="../../api/users/users.views.html#users.views.profile">[documentos]</a>
+<span class="nd">@login_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">profile</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    It shows basic information such as username, email, and</span>
+<span class="sd">    the role assigned to the user.</span>
+<span class="sd">    :param request: HTTP request object.</span>
+<span class="sd">    :return: Rendered HTML page with user and role details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span>
+    <span class="n">current_role</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;profile.html&quot;</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">,</span>
+        <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="n">current_role</span><span class="p">,</span>
+    <span class="p">})</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

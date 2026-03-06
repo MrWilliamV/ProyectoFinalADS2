@@ -1,0 +1,1170 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>inventory.views &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">inventory.views</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para inventory.views</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">csv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">ROUND_HALF_UP</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib</span><span class="w"> </span><span class="kn">import</span> <span class="n">messages</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">login_required</span><span class="p">,</span> <span class="n">user_passes_test</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.core.paginator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Paginator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">transaction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">F</span><span class="p">,</span> <span class="n">Sum</span><span class="p">,</span> <span class="n">Value</span><span class="p">,</span> <span class="n">Max</span><span class="p">,</span> <span class="n">DecimalField</span><span class="p">,</span> <span class="n">Subquery</span><span class="p">,</span> <span class="n">OuterRef</span><span class="p">,</span> <span class="n">Case</span><span class="p">,</span> <span class="n">When</span><span class="p">,</span> <span class="n">Q</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Coalesce</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.http</span><span class="w"> </span><span class="kn">import</span> <span class="n">HttpResponse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.shortcuts</span><span class="w"> </span><span class="kn">import</span> <span class="n">render</span><span class="p">,</span> <span class="n">redirect</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openpyxl</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_workbook</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HealthAndHouse.auth_rol</span><span class="w"> </span><span class="kn">import</span> <span class="n">has_role</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">inventory.forms</span><span class="w"> </span><span class="kn">import</span> <span class="n">InventoryMoveForm</span><span class="p">,</span> <span class="n">InventoryConfigForm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Inventory</span><span class="p">,</span> <span class="n">InventoryMovement</span><span class="p">,</span> <span class="n">ProductLot</span><span class="p">,</span> <span class="n">LotStock</span><span class="p">,</span> <span class="n">Product</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">InventoryConfig</span><span class="p">,</span> \
+    <span class="n">TIPO_MOVIMIENTO_INICIAL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.services</span><span class="w"> </span><span class="kn">import</span> <span class="n">cerrar_periodo_snapshot</span>
+
+<span class="n">Q2</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.01&quot;</span><span class="p">)</span>
+<span class="n">Q4</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0001&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_q2</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Decimal</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">Q2</span><span class="p">,</span> <span class="n">rounding</span><span class="o">=</span><span class="n">ROUND_HALF_UP</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_q4</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Decimal</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">Q4</span><span class="p">,</span> <span class="n">rounding</span><span class="o">=</span><span class="n">ROUND_HALF_UP</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_inv</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">lid</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pid</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">lid</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">product_id</span><span class="o">=</span><span class="n">pid</span><span class="p">,</span> <span class="n">location_id</span><span class="o">=</span><span class="n">lid</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+
+<span class="nd">@login_required</span><span class="p">()</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">,</span> <span class="s2">&quot;JEFE_ALMACEN&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">inventory_movement_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param request:  HttpRequest with POST or GET parameters.</span>
+<span class="sd">                    Expected fields:</span>
+<span class="sd">                        - product, location, quantity, unit_price_in, movement_type,</span>
+<span class="sd">                          lot_code, expire_date, descripcion, supplier</span>
+<span class="sd">    :return:HttpResponse rendering &#39;inventory.html&#39; or redirect to &#39;see_inventory&#39;</span>
+<span class="sd">    :raises: ValueError or transaction-related exceptions if validation fails.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">raw_product_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;product&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;product&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">raw_location_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_to_int_or_none</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">product_id</span> <span class="o">=</span> <span class="n">_to_int_or_none</span><span class="p">(</span><span class="n">raw_product_id</span><span class="p">)</span>
+    <span class="n">location_id</span> <span class="o">=</span> <span class="n">_to_int_or_none</span><span class="p">(</span><span class="n">raw_location_id</span><span class="p">)</span>
+
+    <span class="n">inv</span> <span class="o">=</span> <span class="n">_get_inv</span><span class="p">(</span><span class="n">product_id</span><span class="p">,</span> <span class="n">location_id</span><span class="p">)</span>
+    <span class="n">qty_meta</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">max_stock</span> <span class="k">if</span> <span class="n">inv</span> <span class="ow">and</span> <span class="n">inv</span><span class="o">.</span><span class="n">max_stock</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="s2">&quot;current&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="k">if</span> <span class="n">inv</span> <span class="ow">and</span> <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="n">products</span> <span class="o">=</span> <span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+    <span class="n">locations</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;POST&quot;</span><span class="p">:</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">InventoryMoveForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">is_valid</span><span class="p">():</span>
+            <span class="n">cd</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">cleaned_data</span>
+            <span class="n">product</span> <span class="o">=</span> <span class="n">cd</span><span class="p">[</span><span class="s2">&quot;product&quot;</span><span class="p">]</span>
+            <span class="n">location</span> <span class="o">=</span> <span class="n">cd</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span>
+            <span class="n">quantity</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">cd</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span>
+            <span class="n">unit_cost</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">cd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;unit_price_in&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">))</span>
+            <span class="n">lot_code</span> <span class="o">=</span> <span class="n">cd</span><span class="p">[</span><span class="s2">&quot;lot_code&quot;</span><span class="p">]</span>
+            <span class="n">expire_dt</span> <span class="o">=</span> <span class="n">cd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;expire_date&quot;</span><span class="p">)</span>
+            <span class="n">desc</span> <span class="o">=</span> <span class="n">cd</span><span class="p">[</span><span class="s2">&quot;descripcion&quot;</span><span class="p">]</span>
+            <span class="n">movement_type</span> <span class="o">=</span> <span class="n">cd</span><span class="p">[</span><span class="s2">&quot;movement_type&quot;</span><span class="p">]</span>
+            <span class="n">supplier</span> <span class="o">=</span> <span class="n">cd</span><span class="p">[</span><span class="s2">&quot;supplier&quot;</span><span class="p">]</span>
+
+            <span class="n">today</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">localdate</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">movement_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;PUR&quot;</span><span class="p">,</span> <span class="s2">&quot;ADJIN&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">expire_dt</span><span class="p">:</span>
+                    <span class="n">form</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;expire_date&quot;</span><span class="p">,</span> <span class="s2">&quot;Debes seleccionar una fecha de vencimiento.&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">expire_dt</span> <span class="o">&lt;=</span> <span class="n">today</span><span class="p">:</span>
+                    <span class="n">form</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span>
+                        <span class="s2">&quot;expire_date&quot;</span><span class="p">,</span>
+                        <span class="sa">f</span><span class="s2">&quot;La fecha de vencimiento (</span><span class="si">{</span><span class="n">expire_dt</span><span class="si">}</span><span class="s2">) debe ser mayor a la fecha actual (</span><span class="si">{</span><span class="n">today</span><span class="si">}</span><span class="s2">).&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="n">inv</span> <span class="o">=</span> <span class="n">_get_inv</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">pk</span><span class="p">,</span> <span class="n">location</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="k">if</span> <span class="n">inv</span> <span class="k">else</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">))</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">movement_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;PUR&quot;</span><span class="p">,</span> <span class="s2">&quot;ADJIN&quot;</span><span class="p">]:</span>
+                <span class="n">max_stock</span> <span class="o">=</span> <span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">max_stock</span> <span class="k">if</span> <span class="n">inv</span> <span class="k">else</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">))</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">max_stock</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">current</span> <span class="o">+</span> <span class="n">quantity</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_stock</span><span class="p">:</span>
+                    <span class="n">restante</span> <span class="o">=</span> <span class="n">max_stock</span> <span class="o">-</span> <span class="n">current</span>
+                    <span class="k">if</span> <span class="n">restante</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">restante</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)</span>
+                    <span class="n">form</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span>
+                        <span class="s2">&quot;quantity&quot;</span><span class="p">,</span>
+                        <span class="sa">f</span><span class="s2">&quot;Excede el máximo (</span><span class="si">{</span><span class="n">max_stock</span><span class="si">}</span><span class="s2">). Actual: </span><span class="si">{</span><span class="n">current</span><span class="si">}</span><span class="s2">. &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;Puedes ingresar como mucho </span><span class="si">{</span><span class="n">restante</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">quantity</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">form</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;La cantidad debe ser mayor que cero.&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;inventory.html&quot;</span><span class="p">,</span> <span class="p">{</span>
+                    <span class="s2">&quot;form&quot;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span> <span class="s2">&quot;qty_meta&quot;</span><span class="p">:</span> <span class="n">qty_meta</span><span class="p">,</span>
+                    <span class="s2">&quot;products&quot;</span><span class="p">:</span> <span class="n">products</span><span class="p">,</span> <span class="s2">&quot;locations&quot;</span><span class="p">:</span> <span class="n">locations</span><span class="p">,</span>
+                    <span class="s2">&quot;product_id&quot;</span><span class="p">:</span> <span class="n">product_id</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">:</span> <span class="n">location_id</span><span class="p">,</span>
+                <span class="p">})</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">transaction</span><span class="o">.</span><span class="n">atomic</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">movement_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;PUR&quot;</span><span class="p">,</span> <span class="s2">&quot;ADJIN&quot;</span><span class="p">]:</span>
+                        <span class="c1"># ENTRADAS</span>
+                        <span class="n">lot</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ProductLot</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                            <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">lot_code</span><span class="o">=</span><span class="n">lot_code</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;expire_date&quot;</span><span class="p">:</span> <span class="n">expire_dt</span><span class="p">}</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">lot</span><span class="o">.</span><span class="n">expire_date</span> <span class="ow">and</span> <span class="n">expire_dt</span><span class="p">:</span>
+                            <span class="n">lot</span><span class="o">.</span><span class="n">expire_date</span> <span class="o">=</span> <span class="n">expire_dt</span>
+                            <span class="n">lot</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;expire_date&quot;</span><span class="p">])</span>
+
+                        <span class="n">inv</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                            <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">inv</span><span class="p">:</span>
+                            <span class="n">inv</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                                <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span>
+                                <span class="n">quantity</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span>
+                                <span class="n">avg_unit_cost</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span>
+                                <span class="n">updated_at</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                            <span class="p">)</span>
+
+                        <span class="n">ls</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                            <span class="n">lot</span><span class="o">=</span><span class="n">lot</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)}</span>
+                        <span class="p">)</span>
+
+                        <span class="n">ls</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">ls</span><span class="o">.</span><span class="n">quantity</span> <span class="o">+</span> <span class="n">quantity</span><span class="p">)</span>
+                        <span class="n">ls</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span>
+
+                        <span class="n">qty_prev</span> <span class="o">=</span> <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)</span>
+                        <span class="n">qty_new</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">qty_prev</span> <span class="o">+</span> <span class="n">quantity</span><span class="p">)</span>
+                        <span class="n">entrada_valor</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">quantity</span> <span class="o">*</span> <span class="n">unit_cost</span><span class="p">)</span>
+                        <span class="n">total_prev_val</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">qty_prev</span> <span class="o">*</span> <span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">)))</span>
+                        <span class="n">total_new_val</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">total_prev_val</span> <span class="o">+</span> <span class="n">entrada_valor</span><span class="p">)</span>
+                        <span class="n">avg_new</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">total_new_val</span> <span class="o">/</span> <span class="n">qty_new</span><span class="p">)</span> <span class="k">if</span> <span class="n">qty_new</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">_q4</span><span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span><span class="p">)</span>
+
+                        <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">qty_new</span>
+                        <span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span> <span class="o">=</span> <span class="n">avg_new</span>
+                        <span class="n">inv</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                        <span class="n">inv</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">])</span>
+
+                        <span class="c1"># Registrar movimiento con proveedor</span>
+                        <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                            <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span> <span class="n">lot</span><span class="o">=</span><span class="n">lot</span><span class="p">,</span>
+                            <span class="n">fecha</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">tipo_movimiento</span><span class="o">=</span><span class="n">movement_type</span><span class="p">,</span>
+                            <span class="n">descripcion</span><span class="o">=</span><span class="n">desc</span><span class="p">,</span> <span class="n">valor_unitario</span><span class="o">=</span><span class="n">unit_cost</span><span class="p">,</span>
+                            <span class="n">entrada_cantidad</span><span class="o">=</span><span class="n">quantity</span><span class="p">,</span> <span class="n">entrada_valor</span><span class="o">=</span><span class="n">entrada_valor</span><span class="p">,</span>
+                            <span class="n">salida_cantidad</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span> <span class="n">salida_valor</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span>
+                            <span class="n">saldo_cantidad</span><span class="o">=</span><span class="n">qty_new</span><span class="p">,</span> <span class="n">saldo_valor</span><span class="o">=</span><span class="n">_q4</span><span class="p">(</span><span class="n">qty_new</span> <span class="o">*</span> <span class="n">avg_new</span><span class="p">),</span>
+                            <span class="n">proveedor</span><span class="o">=</span><span class="n">supplier</span><span class="p">,</span>
+                            <span class="n">unidad</span><span class="o">=</span><span class="s2">&quot;UND&quot;</span><span class="p">,</span>
+                            <span class="n">created_by</span><span class="o">=</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+                        <span class="p">)</span>
+
+                        <span class="n">messages</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">request</span><span class="p">,</span>
+                                         <span class="sa">f</span><span class="s2">&quot;Entrada registrada al proveedor </span><span class="si">{</span><span class="n">supplier</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. Saldo actual: </span><span class="si">{</span><span class="n">qty_new</span><span class="si">}</span><span class="s2"> UND.&quot;</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;see_inventory&quot;</span><span class="p">)</span>
+
+                    <span class="k">elif</span> <span class="n">movement_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;SAL&quot;</span><span class="p">,</span> <span class="s2">&quot;ADJOUT&quot;</span><span class="p">]:</span>
+                        <span class="n">inv</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                            <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">inv</span><span class="p">:</span>
+                            <span class="n">form</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;No existe inventario en esta ubicación.&quot;</span><span class="p">)</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Inventario inexistente&quot;</span><span class="p">)</span>
+
+                        <span class="n">current_qty</span> <span class="o">=</span> <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">current_qty</span> <span class="o">&lt;</span> <span class="n">quantity</span><span class="p">:</span>
+                            <span class="n">form</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Stock insuficiente. Disponible: </span><span class="si">{</span><span class="n">current_qty</span><span class="si">}</span><span class="s2"> UND.&quot;</span><span class="p">)</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Stock insuficiente en inventario&quot;</span><span class="p">)</span>
+
+                        <span class="n">remaining</span> <span class="o">=</span> <span class="n">quantity</span>
+                        <span class="n">running_qty</span> <span class="o">=</span> <span class="n">current_qty</span>
+                        <span class="n">unit_avg_cost</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">))</span>
+
+                        <span class="n">lotstocks</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span>
+                            <span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span>
+                            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">lot__product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span> <span class="n">quantity__gt</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">))</span>
+                            <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;lot&quot;</span><span class="p">)</span>
+                            <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;lot__expire_date&quot;</span><span class="p">,</span> <span class="s2">&quot;lot__id&quot;</span><span class="p">)</span>
+                        <span class="p">)</span>
+
+                        <span class="n">total_disponible</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">ls</span><span class="o">.</span><span class="n">quantity</span> <span class="k">for</span> <span class="n">ls</span> <span class="ow">in</span> <span class="n">lotstocks</span><span class="p">))</span>
+                        <span class="k">if</span> <span class="n">total_disponible</span> <span class="o">&lt;</span> <span class="n">remaining</span><span class="p">:</span>
+                            <span class="n">form</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span>
+                                           <span class="sa">f</span><span class="s2">&quot;Stock insuficiente por lotes. Disponible total: </span><span class="si">{</span><span class="n">total_disponible</span><span class="si">}</span><span class="s2"> UND.&quot;</span><span class="p">)</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Stock insuficiente en lotes&quot;</span><span class="p">)</span>
+
+                        <span class="k">for</span> <span class="n">ls</span> <span class="ow">in</span> <span class="n">lotstocks</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">remaining</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="k">break</span>
+                            <span class="n">disponible</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">ls</span><span class="o">.</span><span class="n">quantity</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">disponible</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="k">continue</span>
+                            <span class="n">chunk</span> <span class="o">=</span> <span class="n">disponible</span> <span class="k">if</span> <span class="n">disponible</span> <span class="o">&lt;=</span> <span class="n">remaining</span> <span class="k">else</span> <span class="n">remaining</span>
+
+                            <span class="n">ls</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">disponible</span> <span class="o">-</span> <span class="n">chunk</span><span class="p">)</span>
+                            <span class="n">ls</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span>
+
+                            <span class="n">running_qty</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">running_qty</span> <span class="o">-</span> <span class="n">chunk</span><span class="p">)</span>
+                            <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">running_qty</span>
+                            <span class="n">inv</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                            <span class="n">inv</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">])</span>
+
+                            <span class="n">salida_valor</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">chunk</span> <span class="o">*</span> <span class="n">unit_avg_cost</span><span class="p">)</span>
+                            <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                                <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span> <span class="n">lot</span><span class="o">=</span><span class="n">ls</span><span class="o">.</span><span class="n">lot</span><span class="p">,</span>
+                                <span class="n">fecha</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">tipo_movimiento</span><span class="o">=</span><span class="n">movement_type</span><span class="p">,</span>
+                                <span class="n">descripcion</span><span class="o">=</span><span class="n">desc</span><span class="p">,</span> <span class="n">valor_unitario</span><span class="o">=</span><span class="n">unit_avg_cost</span><span class="p">,</span>
+                                <span class="n">entrada_cantidad</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span> <span class="n">entrada_valor</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span>
+                                <span class="n">salida_cantidad</span><span class="o">=</span><span class="n">chunk</span><span class="p">,</span> <span class="n">salida_valor</span><span class="o">=</span><span class="n">salida_valor</span><span class="p">,</span>
+                                <span class="n">saldo_cantidad</span><span class="o">=</span><span class="n">running_qty</span><span class="p">,</span> <span class="n">saldo_valor</span><span class="o">=</span><span class="n">_q4</span><span class="p">(</span><span class="n">running_qty</span> <span class="o">*</span> <span class="n">unit_avg_cost</span><span class="p">),</span>
+                                <span class="n">proveedor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unidad</span><span class="o">=</span><span class="s2">&quot;UND&quot;</span><span class="p">,</span>
+                                <span class="n">created_by</span><span class="o">=</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+                            <span class="p">)</span>
+                            <span class="n">remaining</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">remaining</span> <span class="o">-</span> <span class="n">chunk</span><span class="p">)</span>
+
+                        <span class="k">if</span> <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Inconsistencia: el inventario quedó negativo.&quot;</span><span class="p">)</span>
+
+                        <span class="n">messages</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">request</span><span class="p">,</span>
+                                         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;Salida&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">movement_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">&#39;SAL&#39;</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;Ajuste de salida&#39;</span><span class="si">}</span><span class="s2"> registrado. Saldo actual: </span><span class="si">{</span><span class="n">inv</span><span class="o">.</span><span class="n">quantity</span><span class="si">}</span><span class="s2"> UND.&quot;</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;see_inventory&quot;</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">form</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+                    <span class="n">form</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Ocurrió un error de sistema: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;inventory.html&quot;</span><span class="p">,</span> <span class="p">{</span>
+                    <span class="s2">&quot;form&quot;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span> <span class="s2">&quot;qty_meta&quot;</span><span class="p">:</span> <span class="n">qty_meta</span><span class="p">,</span>
+                    <span class="s2">&quot;products&quot;</span><span class="p">:</span> <span class="n">products</span><span class="p">,</span> <span class="s2">&quot;locations&quot;</span><span class="p">:</span> <span class="n">locations</span><span class="p">,</span>
+                    <span class="s2">&quot;product_id&quot;</span><span class="p">:</span> <span class="n">product_id</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">:</span> <span class="n">location_id</span><span class="p">,</span>
+                <span class="p">})</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">initial</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">product_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initial</span><span class="p">[</span><span class="s2">&quot;product&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">product_id</span>
+        <span class="k">if</span> <span class="n">location_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initial</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">location_id</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">InventoryMoveForm</span><span class="p">(</span><span class="n">initial</span><span class="o">=</span><span class="n">initial</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;inventory.html&quot;</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s2">&quot;form&quot;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span> <span class="s2">&quot;qty_meta&quot;</span><span class="p">:</span> <span class="n">qty_meta</span><span class="p">,</span>
+        <span class="s2">&quot;products&quot;</span><span class="p">:</span> <span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;locations&quot;</span><span class="p">:</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;product_id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">product_id</span><span class="p">)</span> <span class="k">if</span> <span class="n">product_id</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;location_id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">location_id</span><span class="p">)</span> <span class="k">if</span> <span class="n">location_id</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">})</span>
+
+
+<span class="nd">@login_required</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">,</span> <span class="s2">&quot;JEFE_ALMACEN&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">inventory_list_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Displays the current inventory state by lot and location.</span>
+<span class="sd">    :param request: HttpRequest with optional GET params:</span>
+<span class="sd">                    q (search term), location (id), sin_ini (exclude initial),</span>
+<span class="sd">                    period (inventory period ID)</span>
+<span class="sd">    :return:  HttpResponse rendering &#39;see_inventory.html&#39;</span>
+<span class="sd">    :raises: ValueError if filters or aggregations are inconsistent.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">loc_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">)</span>
+    <span class="n">sin_ini</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sin_ini&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">)</span>
+
+    <span class="n">period_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;period&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">period_id</span><span class="p">:</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">period_id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+    <span class="c1"># Si no hay periodo seleccionable/activo, mostramos la vista sin datos</span>
+    <span class="n">locations</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;id_location&quot;</span><span class="p">)</span>
+    <span class="n">periods</span> <span class="o">=</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;-fecha_corte&quot;</span><span class="p">,</span> <span class="s2">&quot;-id&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;see_inventory.html&quot;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s2">&quot;no_active_period&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;locations&quot;</span><span class="p">:</span> <span class="n">locations</span><span class="p">,</span>
+            <span class="s2">&quot;current_location&quot;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;search&quot;</span><span class="p">:</span> <span class="n">q</span><span class="p">,</span>
+            <span class="s2">&quot;periods&quot;</span><span class="p">:</span> <span class="n">periods</span><span class="p">,</span>
+            <span class="s2">&quot;current_period_id&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;sin_ini&quot;</span><span class="p">:</span> <span class="n">sin_ini</span><span class="p">,</span>
+        <span class="p">})</span>
+
+    <span class="n">ZERO_QTY</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+    <span class="n">ZERO_VAL</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+    <span class="n">ZERO_COST</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">6</span><span class="p">))</span>
+
+    <span class="c1"># Base: movimientos del periodo seleccionado (activo por defecto)</span>
+    <span class="n">movs</span> <span class="o">=</span> <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sin_ini</span><span class="p">:</span>
+        <span class="n">movs</span> <span class="o">=</span> <span class="n">movs</span><span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="n">tipo_movimiento</span><span class="o">=</span><span class="n">TIPO_MOVIMIENTO_INICIAL</span><span class="p">)</span>
+
+    <span class="n">agg</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">movs</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;lot_id&quot;</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+            <span class="n">entradas</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;entrada_cantidad&quot;</span><span class="p">),</span> <span class="n">ZERO_QTY</span><span class="p">),</span>
+            <span class="n">salidas</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;salida_cantidad&quot;</span><span class="p">),</span> <span class="n">ZERO_QTY</span><span class="p">),</span>
+            <span class="n">entrada_valor</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;entrada_valor&quot;</span><span class="p">),</span> <span class="n">ZERO_VAL</span><span class="p">),</span>
+            <span class="n">salida_valor</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;salida_valor&quot;</span><span class="p">),</span> <span class="n">ZERO_VAL</span><span class="p">),</span>
+            <span class="n">updated_at</span><span class="o">=</span><span class="n">Max</span><span class="p">(</span><span class="s2">&quot;fecha&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+            <span class="n">qty</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;entradas&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;salidas&quot;</span><span class="p">),</span>
+            <span class="n">total</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;entrada_valor&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;salida_valor&quot;</span><span class="p">),</span>
+            <span class="n">avg</span><span class="o">=</span><span class="n">Case</span><span class="p">(</span>
+                <span class="n">When</span><span class="p">(</span><span class="n">qty__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">then</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;total&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;qty&quot;</span><span class="p">)),</span>
+                <span class="n">default</span><span class="o">=</span><span class="n">ZERO_COST</span><span class="p">,</span> <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">6</span><span class="p">),</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">qs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span>
+        <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;lot&quot;</span><span class="p">,</span> <span class="s2">&quot;lot__product&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+            <span class="n">row_id</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;id_lot_stock&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">LotStock</span><span class="p">,</span> <span class="s2">&quot;id_lot_stock&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__id_lot&quot;</span><span class="p">),</span>
+            <span class="n">product_id</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__product__id_product&quot;</span><span class="p">),</span>
+            <span class="n">lot_code</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__lot_code&quot;</span><span class="p">),</span>
+            <span class="n">id_lot</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__id_lot&quot;</span><span class="p">),</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__product__name&quot;</span><span class="p">),</span>
+            <span class="n">expire_date</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__expire_date&quot;</span><span class="p">),</span>
+
+            <span class="c1"># Cantidad calculada por movimientos del periodo</span>
+            <span class="n">period_qty</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span>
+                <span class="n">Subquery</span><span class="p">(</span>
+                    <span class="n">agg</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;qty&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                        <span class="n">lot_id</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;lot_id&quot;</span><span class="p">),</span>
+                        <span class="n">location_id</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;location_id&quot;</span><span class="p">)</span>
+                    <span class="p">)[:</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">),</span>
+                <span class="n">ZERO_QTY</span>
+            <span class="p">),</span>
+
+            <span class="c1"># Cantidad REAL actual en tabla LotStock</span>
+            <span class="n">ls_qty</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;quantity&quot;</span><span class="p">),</span>
+
+            <span class="c1"># Mostrar la MENOR de ambas</span>
+            <span class="n">display_qty</span><span class="o">=</span><span class="n">Case</span><span class="p">(</span>
+                <span class="n">When</span><span class="p">(</span><span class="n">period_qty__isnull</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">then</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;ls_qty&quot;</span><span class="p">)),</span>
+                <span class="n">When</span><span class="p">(</span><span class="n">period_qty__gt</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;ls_qty&quot;</span><span class="p">),</span> <span class="n">then</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;ls_qty&quot;</span><span class="p">)),</span>
+                <span class="n">default</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;period_qty&quot;</span><span class="p">),</span>
+                <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span>
+            <span class="p">),</span>
+
+            <span class="c1"># Precio: conservamos el promedio del periodo</span>
+            <span class="n">period_price</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span>
+                <span class="n">Subquery</span><span class="p">(</span>
+                    <span class="n">agg</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;avg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                        <span class="n">lot_id</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;lot_id&quot;</span><span class="p">),</span>
+                        <span class="n">location_id</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;location_id&quot;</span><span class="p">)</span>
+                    <span class="p">)[:</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">),</span>
+                <span class="n">ZERO_COST</span>
+            <span class="p">),</span>
+
+            <span class="n">updated_at</span><span class="o">=</span><span class="n">Subquery</span><span class="p">(</span>
+                <span class="n">agg</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;updated_at&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                    <span class="n">lot_id</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;lot_id&quot;</span><span class="p">),</span>
+                    <span class="n">location_id</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;location_id&quot;</span><span class="p">)</span>
+                <span class="p">)[:</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="c1"># importante: ahora filtramos por lo que MOSTRAMOS</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">display_qty__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">loc_id</span><span class="p">:</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location__id_location</span><span class="o">=</span><span class="n">loc_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">q</span><span class="p">:</span>
+        <span class="n">filters</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">Q</span><span class="p">(</span><span class="n">lot__product__name__icontains</span><span class="o">=</span><span class="n">q</span><span class="p">)</span> <span class="o">|</span>
+                <span class="n">Q</span><span class="p">(</span><span class="n">lot__lot_code__icontains</span><span class="o">=</span><span class="n">q</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Si el usuario escribe un número, permite buscar por id exactos</span>
+        <span class="k">if</span> <span class="n">q</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="n">filters</span> <span class="o">|=</span> <span class="n">Q</span><span class="p">(</span><span class="n">lot__id_lot</span><span class="o">=</span><span class="n">num</span><span class="p">)</span> <span class="o">|</span> <span class="n">Q</span><span class="p">(</span><span class="n">lot__product__id_product</span><span class="o">=</span><span class="n">num</span><span class="p">)</span>
+
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">filters</span><span class="p">)</span>
+
+    <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;location__id_location&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;expire_date&quot;</span><span class="p">,</span> <span class="s2">&quot;id_lot&quot;</span><span class="p">)</span>
+
+    <span class="c1"># mapear para la plantilla</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">qs</span><span class="p">:</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">display_qty</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">price</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">period_price</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+    <span class="n">paginator</span> <span class="o">=</span> <span class="n">Paginator</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="mi">25</span><span class="p">)</span>
+    <span class="n">page_obj</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">get_page</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;page&quot;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;see_inventory.html&quot;</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s2">&quot;page_obj&quot;</span><span class="p">:</span> <span class="n">page_obj</span><span class="p">,</span>
+        <span class="s2">&quot;locations&quot;</span><span class="p">:</span> <span class="n">locations</span><span class="p">,</span>
+        <span class="s2">&quot;current_location&quot;</span><span class="p">:</span> <span class="n">loc_id</span><span class="p">,</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">:</span> <span class="n">q</span><span class="p">,</span>
+        <span class="s2">&quot;no_active_period&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;sin_ini&quot;</span><span class="p">:</span> <span class="n">sin_ini</span><span class="p">,</span>
+        <span class="s2">&quot;periods&quot;</span><span class="p">:</span> <span class="n">periods</span><span class="p">,</span>
+        <span class="s2">&quot;current_period_id&quot;</span><span class="p">:</span> <span class="n">cfg</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+    <span class="p">})</span>
+
+
+<span class="nd">@login_required</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">,</span> <span class="s2">&quot;JEFE_ALMACEN&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">traslado_lote_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Handles transfer of stock quantities between two locations.</span>
+<span class="sd">    :param request: HttpRequest (GET or POST) containing:</span>
+<span class="sd">                    - origin, to_location, selected, quantity</span>
+<span class="sd">    :return: HttpResponse rendering &#39;inventory_transfer.html&#39; or redirect to &#39;inventory_transfer&#39;</span>
+<span class="sd">    :raises: ValueError for invalid data or insufficient stock.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_q2</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Decimal</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.01&quot;</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_q4</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Decimal</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0001&quot;</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;POST&quot;</span><span class="p">:</span>
+        <span class="n">origin_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;origin&quot;</span><span class="p">)</span>
+        <span class="n">target_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;to_location&quot;</span><span class="p">)</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;selected&quot;</span><span class="p">)</span>
+        <span class="n">qty_raw</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quantity&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Selecciona un lote en la tabla.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_transfer&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">origin_id</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">target_id</span> <span class="ow">or</span> <span class="n">origin_id</span> <span class="o">==</span> <span class="n">target_id</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Selecciona un origen y un destino diferentes.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_transfer&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">lot_id_str</span><span class="p">,</span> <span class="n">product_id_str</span> <span class="o">=</span> <span class="n">selected</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+            <span class="n">lot_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lot_id_str</span><span class="p">)</span>
+            <span class="n">product_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">product_id_str</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Selección inválida.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_transfer&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="n">qty_raw</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">q</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Cantidad inválida.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_transfer&quot;</span><span class="p">)</span>
+
+        <span class="c1"># === Periodo activo obligatorio ===</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;No hay periodo contable activo. No se puede trasladar.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_transfer&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">transaction</span><span class="o">.</span><span class="n">atomic</span><span class="p">():</span>
+                <span class="n">origin</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">origin_id</span><span class="p">)</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">target_id</span><span class="p">)</span>
+
+                <span class="n">lot</span> <span class="o">=</span> <span class="n">ProductLot</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="n">pk</span><span class="o">=</span><span class="n">lot_id</span><span class="p">,</span> <span class="n">product_id</span><span class="o">=</span><span class="n">product_id</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Inventarios origen/destino</span>
+                <span class="n">inv_from</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="n">product_id</span><span class="o">=</span><span class="n">product_id</span><span class="p">,</span> <span class="n">location_id</span><span class="o">=</span><span class="n">origin_id</span>
+                <span class="p">)</span>
+                <span class="n">inv_to</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                    <span class="n">product_id</span><span class="o">=</span><span class="n">product_id</span><span class="p">,</span>
+                    <span class="n">location</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+                    <span class="n">defaults</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span>
+                        <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span>
+                        <span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+                        <span class="s2">&quot;min_stock&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span>
+                        <span class="s2">&quot;max_stock&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span>
+                    <span class="p">},</span>
+                <span class="p">)</span>
+
+                <span class="c1"># LotStock origen/destino</span>
+                <span class="n">ls_from</span> <span class="o">=</span> <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="n">lot_id</span><span class="o">=</span><span class="n">lot_id</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">origin</span>
+                <span class="p">)</span>
+                <span class="n">ls_to</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                    <span class="n">lot_id</span><span class="o">=</span><span class="n">lot_id</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)}</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Stock suficiente</span>
+                <span class="k">if</span> <span class="n">ls_from</span><span class="o">.</span><span class="n">quantity</span> <span class="o">&lt;</span> <span class="n">q</span> <span class="ow">or</span> <span class="n">inv_from</span><span class="o">.</span><span class="n">quantity</span> <span class="o">&lt;</span> <span class="n">q</span><span class="p">:</span>
+                    <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Stock insuficiente en el lote o inventario de origen.&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_transfer&quot;</span><span class="p">)</span>
+
+                <span class="n">now</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+
+                <span class="c1"># --- ORIGEN (TOUT)</span>
+                <span class="n">avg_from</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">inv_from</span><span class="o">.</span><span class="n">avg_unit_cost</span><span class="p">)</span>
+
+                <span class="n">inv_from</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">inv_from</span><span class="o">.</span><span class="n">quantity</span> <span class="o">-</span> <span class="n">q</span><span class="p">)</span>
+                <span class="n">inv_from</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">now</span>
+                <span class="n">inv_from</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">])</span>
+
+                <span class="n">ls_from</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">ls_from</span><span class="o">.</span><span class="n">quantity</span> <span class="o">-</span> <span class="n">q</span><span class="p">)</span>
+                <span class="n">ls_from</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span>
+
+                <span class="n">out_val</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">q</span> <span class="o">*</span> <span class="n">avg_from</span><span class="p">)</span>
+                <span class="n">saldo_val_from</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">inv_from</span><span class="o">.</span><span class="n">quantity</span> <span class="o">*</span> <span class="n">avg_from</span><span class="p">)</span>
+
+                <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                    <span class="n">product_id</span><span class="o">=</span><span class="n">product_id</span><span class="p">,</span>
+                    <span class="n">location</span><span class="o">=</span><span class="n">origin</span><span class="p">,</span>
+                    <span class="n">lot_id</span><span class="o">=</span><span class="n">lot_id</span><span class="p">,</span>
+                    <span class="n">fecha</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+                    <span class="n">tipo_movimiento</span><span class="o">=</span><span class="s2">&quot;TOUT&quot;</span><span class="p">,</span>
+                    <span class="n">descripcion</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Traslado </span><span class="si">{</span><span class="n">origin</span><span class="o">.</span><span class="n">code</span><span class="si">}</span><span class="s2">→</span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">code</span><span class="si">}</span><span class="s2"> (salida)&quot;</span><span class="p">,</span>
+                    <span class="n">valor_unitario</span><span class="o">=</span><span class="n">avg_from</span><span class="p">,</span>
+                    <span class="n">entrada_cantidad</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span>
+                    <span class="n">entrada_valor</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span>
+                    <span class="n">salida_cantidad</span><span class="o">=</span><span class="n">q</span><span class="p">,</span>
+                    <span class="n">salida_valor</span><span class="o">=</span><span class="n">out_val</span><span class="p">,</span>
+                    <span class="n">saldo_cantidad</span><span class="o">=</span><span class="n">inv_from</span><span class="o">.</span><span class="n">quantity</span><span class="p">,</span>
+                    <span class="n">saldo_valor</span><span class="o">=</span><span class="n">saldo_val_from</span><span class="p">,</span>
+                    <span class="n">proveedor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">unidad</span><span class="o">=</span><span class="s2">&quot;UND&quot;</span><span class="p">,</span>
+                    <span class="n">created_by</span><span class="o">=</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">period</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span>  <span class="c1"># ← CLAVE: pertenece al periodo activo</span>
+                <span class="p">)</span>
+
+                <span class="c1"># --- DESTINO (TIN)</span>
+                <span class="n">qty_prev_to</span> <span class="o">=</span> <span class="n">inv_to</span><span class="o">.</span><span class="n">quantity</span>
+                <span class="n">avg_prev_to</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">inv_to</span><span class="o">.</span><span class="n">avg_unit_cost</span><span class="p">)</span>
+                <span class="n">qty_new_to</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">qty_prev_to</span> <span class="o">+</span> <span class="n">q</span><span class="p">)</span>
+
+                <span class="n">in_val</span> <span class="o">=</span> <span class="n">out_val</span>  <span class="c1"># entra con costo del origen</span>
+                <span class="n">total_prev_to</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">qty_prev_to</span> <span class="o">*</span> <span class="n">avg_prev_to</span><span class="p">)</span>
+                <span class="n">total_new_to</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">total_prev_to</span> <span class="o">+</span> <span class="n">in_val</span><span class="p">)</span>
+                <span class="n">avg_new_to</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">total_new_to</span> <span class="o">/</span> <span class="n">qty_new_to</span><span class="p">)</span> <span class="k">if</span> <span class="n">qty_new_to</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">avg_prev_to</span>
+
+                <span class="n">inv_to</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">qty_new_to</span>
+                <span class="n">inv_to</span><span class="o">.</span><span class="n">avg_unit_cost</span> <span class="o">=</span> <span class="n">avg_new_to</span>
+                <span class="n">inv_to</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">now</span>
+                <span class="n">inv_to</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">])</span>
+
+                <span class="n">ls_to</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">_q2</span><span class="p">(</span><span class="n">ls_to</span><span class="o">.</span><span class="n">quantity</span> <span class="o">+</span> <span class="n">q</span><span class="p">)</span>
+                <span class="n">ls_to</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span>
+
+                <span class="n">saldo_val_to</span> <span class="o">=</span> <span class="n">_q4</span><span class="p">(</span><span class="n">qty_new_to</span> <span class="o">*</span> <span class="n">avg_new_to</span><span class="p">)</span>
+
+                <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                    <span class="n">product_id</span><span class="o">=</span><span class="n">product_id</span><span class="p">,</span>
+                    <span class="n">location</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+                    <span class="n">lot_id</span><span class="o">=</span><span class="n">lot_id</span><span class="p">,</span>
+                    <span class="n">fecha</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+                    <span class="n">tipo_movimiento</span><span class="o">=</span><span class="s2">&quot;TIN&quot;</span><span class="p">,</span>
+                    <span class="n">descripcion</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Traslado </span><span class="si">{</span><span class="n">origin</span><span class="o">.</span><span class="n">code</span><span class="si">}</span><span class="s2">→</span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">code</span><span class="si">}</span><span class="s2"> (entrada)&quot;</span><span class="p">,</span>
+                    <span class="n">valor_unitario</span><span class="o">=</span><span class="n">avg_from</span><span class="p">,</span>
+                    <span class="n">entrada_cantidad</span><span class="o">=</span><span class="n">q</span><span class="p">,</span>
+                    <span class="n">entrada_valor</span><span class="o">=</span><span class="n">in_val</span><span class="p">,</span>
+                    <span class="n">salida_cantidad</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span>
+                    <span class="n">salida_valor</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span>
+                    <span class="n">saldo_cantidad</span><span class="o">=</span><span class="n">qty_new_to</span><span class="p">,</span>
+                    <span class="n">saldo_valor</span><span class="o">=</span><span class="n">saldo_val_to</span><span class="p">,</span>
+                    <span class="n">proveedor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">unidad</span><span class="o">=</span><span class="s2">&quot;UND&quot;</span><span class="p">,</span>
+                    <span class="n">created_by</span><span class="o">=</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">period</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span>  <span class="c1"># ← CLAVE: pertenece al periodo activo</span>
+                <span class="p">)</span>
+
+            <span class="n">messages</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Traslado realizado: </span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2"> UND de </span><span class="si">{</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_transfer&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="n">ProductLot</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;El lote seleccionado no existe.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;No existe inventario en el origen o destino.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">LotStock</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;No hay stock de ese lote en el origen.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Ocurrió un error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_transfer&quot;</span><span class="p">)</span>
+
+    <span class="c1"># ---------------- GET: mostrar SOLO lo que existe en el periodo activo ----------------</span>
+    <span class="c1"># Si no hay periodo activo (lo desactivaste/cerraste), NO mostramos nada.</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+    <span class="n">selected_product</span> <span class="o">=</span> <span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;product&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="c1"># Origen por GET; si no viene, usa el primero disponible</span>
+    <span class="n">origin_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;origin&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">origin_id</span><span class="p">:</span>
+        <span class="n">first_loc</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;id_location&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="n">origin_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">first_loc</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span> <span class="k">if</span> <span class="n">first_loc</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">locations</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;id_location&quot;</span><span class="p">)</span>
+    <span class="n">products</span> <span class="o">=</span> <span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+
+    <span class="n">page_obj</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">cfg</span> <span class="ow">and</span> <span class="n">origin_id</span><span class="p">:</span>
+        <span class="n">ZERO_QTY</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+
+        <span class="c1"># Agregado por periodo (incluye INI): entradas - salidas por (lot, location)</span>
+        <span class="n">movs</span> <span class="o">=</span> <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span> <span class="n">location_id</span><span class="o">=</span><span class="n">origin_id</span><span class="p">)</span>
+        <span class="n">agg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">movs</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;lot_id&quot;</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+                <span class="n">entradas</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;entrada_cantidad&quot;</span><span class="p">),</span> <span class="n">ZERO_QTY</span><span class="p">),</span>
+                <span class="n">salidas</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;salida_cantidad&quot;</span><span class="p">),</span> <span class="n">ZERO_QTY</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">period_qty</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;entradas&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;salidas&quot;</span><span class="p">))</span>
+        <span class="p">)</span>
+
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span>
+            <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;lot&quot;</span><span class="p">,</span> <span class="s2">&quot;lot__product&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location_id</span><span class="o">=</span><span class="n">origin_id</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+                <span class="n">product_id</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__product_id&quot;</span><span class="p">),</span>
+                <span class="n">product_name</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__product__name&quot;</span><span class="p">),</span>
+                <span class="n">lot_pk</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot_id&quot;</span><span class="p">),</span>
+                <span class="n">lot_code</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__lot_code&quot;</span><span class="p">),</span>
+                <span class="n">expire_date</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;lot__expire_date&quot;</span><span class="p">),</span>
+                <span class="n">period_qty</span><span class="o">=</span><span class="n">Subquery</span><span class="p">(</span>
+                    <span class="n">agg</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                        <span class="n">lot_id</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;lot_id&quot;</span><span class="p">),</span>
+                        <span class="n">location_id</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;location_id&quot;</span><span class="p">)</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;period_qty&quot;</span><span class="p">)[:</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">period_qty__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># ← SOLO lo que tiene cantidad en el PERIODO ACTIVO</span>
+            <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;product_name&quot;</span><span class="p">,</span> <span class="s2">&quot;expire_date&quot;</span><span class="p">,</span> <span class="s2">&quot;lot_code&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">selected_product</span><span class="p">:</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="n">rows</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">lot__product_id</span><span class="o">=</span><span class="n">selected_product</span><span class="p">)</span>
+
+        <span class="n">paginator</span> <span class="o">=</span> <span class="n">Paginator</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+        <span class="n">page_obj</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">get_page</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;page&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># No hay periodo activo → lista vacía (aunque LotStock tenga residuos)</span>
+        <span class="n">paginator</span> <span class="o">=</span> <span class="n">Paginator</span><span class="p">([],</span> <span class="mi">20</span><span class="p">)</span>
+        <span class="n">page_obj</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">get_page</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># (Opcional) puedes mostrar un aviso en el template si cfg es None.</span>
+
+    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;locations&quot;</span><span class="p">:</span> <span class="n">locations</span><span class="p">,</span>
+        <span class="s2">&quot;products&quot;</span><span class="p">:</span> <span class="n">products</span><span class="p">,</span>
+        <span class="s2">&quot;origin_id&quot;</span><span class="p">:</span> <span class="n">origin_id</span><span class="p">,</span>
+        <span class="s2">&quot;selected_product&quot;</span><span class="p">:</span> <span class="n">selected_product</span><span class="p">,</span>
+        <span class="s2">&quot;page_obj&quot;</span><span class="p">:</span> <span class="n">page_obj</span><span class="p">,</span>
+        <span class="s2">&quot;no_active_period&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">cfg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;inventory_transfer.html&quot;</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_current_stock_qty</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Manages the import of initial inventory records from an Excel file.</span>
+
+<span class="sd">    :param product:</span>
+<span class="sd">    :param location:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">agg</span> <span class="o">=</span> <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">qty</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;entrada_cantidad&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;salida_cantidad&quot;</span><span class="p">)),</span> <span class="n">Value</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">))))</span>
+    <span class="k">return</span> <span class="n">agg</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stock_limits_for</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtiene min/max exclusivamente desde Inventory (por producto y ubicación).</span>
+<span class="sd">    Si no existe registro Inventory, no aplica límites (None, None).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inv</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">)</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;min_stock&quot;</span><span class="p">,</span> <span class="s2">&quot;max_stock&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">inv</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># normaliza a Decimal si son numéricos</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_to_dec</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">Decimal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">min_s</span> <span class="o">=</span> <span class="n">_to_dec</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">inv</span><span class="p">,</span> <span class="s2">&quot;min_stock&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">min_s</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">max_s</span> <span class="o">=</span> <span class="n">_to_dec</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">inv</span><span class="p">,</span> <span class="s2">&quot;max_stock&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">max_s</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">min_s</span><span class="p">,</span> <span class="n">max_s</span><span class="p">)</span>
+
+
+<span class="c1"># Encabezados EXACTOS del import/export de inventario inicial</span>
+<span class="n">INITIAL_HEADERS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;codigo_producto&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nombre_producto&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;lote&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;fecha_vencimiento&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cantidad_de_producto&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;precio&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;unidad&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_lot_code</span><span class="p">(</span><span class="n">lot</span><span class="p">:</span> <span class="n">ProductLot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">,</span> <span class="s2">&quot;lot_code&quot;</span><span class="p">,</span> <span class="s2">&quot;number&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lot</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">lot</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_lot_expire</span><span class="p">(</span><span class="n">lot</span><span class="p">:</span> <span class="n">ProductLot</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;expire_date&quot;</span><span class="p">,</span> <span class="s2">&quot;expiration_date&quot;</span><span class="p">,</span> <span class="s2">&quot;due_date&quot;</span><span class="p">,</span> <span class="s2">&quot;fecha_vencimiento&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lot</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">lot</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_product_unit</span><span class="p">(</span><span class="n">prod</span><span class="p">:</span> <span class="n">Product</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;unit&quot;</span><span class="p">,</span> <span class="s2">&quot;unidad&quot;</span><span class="p">,</span> <span class="s2">&quot;uom&quot;</span><span class="p">,</span> <span class="s2">&quot;unidad_medida&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">prod</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">prod</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">val</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;und&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_avg_cost</span><span class="p">(</span><span class="n">prod</span><span class="p">:</span> <span class="n">Product</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Decimal</span><span class="p">:</span>
+    <span class="n">inv</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">product</span><span class="o">=</span><span class="n">prod</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">inv</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">inv</span><span class="p">,</span> <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span>
+    <span class="k">return</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_has_field</span><span class="p">(</span><span class="n">model_cls</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">model_cls</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">get_fields</span><span class="p">())</span>
+
+
+<span class="nd">@login_required</span><span class="p">()</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">,</span> <span class="s2">&quot;JEFE_ALMACEN&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">inventory_initial_import_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Manages the import of initial inventory records from an Excel file.</span>
+
+<span class="sd">    :param request:  HttpRequest with GET or POST (and optional FILES for Excel).</span>
+<span class="sd">    :return: HttpResponse rendering &#39;inventory_initial_import.html&#39; or redirect.</span>
+<span class="sd">    :raises: ValidationError or Exception for invalid files, duplicates, or import errors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+
+    <span class="n">config</span> <span class="o">=</span> <span class="p">(</span><span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span>
+              <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+              <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;main_location&quot;</span><span class="p">)</span>
+              <span class="o">.</span><span class="n">first</span><span class="p">())</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Configura primero la fecha de corte y la bodega principal.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_initial_hub&quot;</span><span class="p">)</span>
+
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s2">&quot;inventory_initial_import.html&quot;</span>
+
+    <span class="c1"># Cerrar periodo contable manualmente</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;POST&quot;</span> <span class="ow">and</span> <span class="s2">&quot;force_close_period&quot;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">cerrar_periodo_snapshot</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Periodo cerrado. Snapshot #</span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;snapshot_id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> con </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;items&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> ítems.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_initial_hub&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Importar inventario inicial</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;POST&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">&quot;import_initial&quot;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">FILES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">)):</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">FILES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Adjunta un archivo Excel.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">template_name</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;config&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">})</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">wb</span> <span class="o">=</span> <span class="n">load_workbook</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">data_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">wb</span><span class="o">.</span><span class="n">active</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Archivo inválido: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">template_name</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;config&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">})</span>
+
+        <span class="n">header_row</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">ws</span><span class="o">.</span><span class="n">iter_rows</span><span class="p">(</span><span class="n">min_row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_row</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">headers_exact</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">header_row</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">INITIAL_HEADERS</span> <span class="k">if</span> <span class="n">h</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">headers_exact</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Faltan columnas obligatorias: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">template_name</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;config&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">})</span>
+
+        <span class="n">idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">h</span><span class="p">:</span> <span class="n">headers_exact</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">headers_exact</span><span class="p">}</span>
+        <span class="n">cell</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">row</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">key</span><span class="p">]]</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">idx</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">q2</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Decimal</span><span class="p">)</span> <span class="k">else</span> <span class="n">Decimal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span> <span class="ow">or</span> <span class="s2">&quot;0&quot;</span><span class="p">)))</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.01&quot;</span><span class="p">))</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">q4</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Decimal</span><span class="p">)</span> <span class="k">else</span> <span class="n">Decimal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span> <span class="ow">or</span> <span class="s2">&quot;0&quot;</span><span class="p">)))</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">))</span>
+
+        <span class="n">errors</span><span class="p">,</span> <span class="n">rows</span><span class="p">,</span> <span class="n">seen</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">replace</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;replace_existing&quot;</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ws</span><span class="o">.</span><span class="n">iter_rows</span><span class="p">(</span><span class="n">min_row</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+            <span class="n">cod</span> <span class="o">=</span> <span class="n">cell</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;codigo_producto&quot;</span><span class="p">)</span>
+            <span class="n">nombre</span> <span class="o">=</span> <span class="n">cell</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;nombre_producto&quot;</span><span class="p">)</span>
+            <span class="n">lote</span> <span class="o">=</span> <span class="n">cell</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;lote&quot;</span><span class="p">)</span>
+            <span class="n">venc</span> <span class="o">=</span> <span class="n">cell</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;fecha_vencimiento&quot;</span><span class="p">)</span>
+            <span class="n">qty</span> <span class="o">=</span> <span class="n">cell</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;cantidad_de_producto&quot;</span><span class="p">)</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">cell</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;precio&quot;</span><span class="p">)</span>
+            <span class="n">unidad</span> <span class="o">=</span> <span class="n">cell</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;unidad&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="n">cod</span><span class="p">,</span> <span class="n">nombre</span><span class="p">,</span> <span class="n">lote</span><span class="p">,</span> <span class="n">venc</span><span class="p">,</span> <span class="n">qty</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">unidad</span><span class="p">)):</span>
+                <span class="k">continue</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">prod</span> <span class="o">=</span> <span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">id_product</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">cod</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Producto inválido: </span><span class="si">{</span><span class="n">cod</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">qty</span> <span class="o">=</span> <span class="n">q2</span><span class="p">(</span><span class="n">qty</span><span class="p">)</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">q4</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">qty</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cantidad no positiva para producto </span><span class="si">{</span><span class="n">cod</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cantidad o precio inválidos para producto </span><span class="si">{</span><span class="n">cod</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">venc</span><span class="p">,</span> <span class="n">datetime</span><span class="p">):</span>
+                <span class="n">venc</span> <span class="o">=</span> <span class="n">venc</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">venc</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">venc</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">venc</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">venc</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fecha vencimiento inválida para producto </span><span class="si">{</span><span class="n">cod</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">venc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">venc</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">prod</span><span class="o">.</span><span class="n">pk</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">lote</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Duplicado en archivo: producto </span><span class="si">{</span><span class="n">cod</span><span class="si">}</span><span class="s2"> lote </span><span class="si">{</span><span class="n">lote</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">&quot;product&quot;</span><span class="p">:</span> <span class="n">prod</span><span class="p">,</span>
+                <span class="s2">&quot;lot_code&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">lote</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                <span class="s2">&quot;expire_date&quot;</span><span class="p">:</span> <span class="n">venc</span><span class="p">,</span>
+                <span class="s2">&quot;qty&quot;</span><span class="p">:</span> <span class="n">qty</span><span class="p">,</span>
+                <span class="s2">&quot;unit_cost&quot;</span><span class="p">:</span> <span class="n">cost</span><span class="p">,</span>
+                <span class="s2">&quot;unidad&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">unidad</span> <span class="ow">or</span> <span class="s2">&quot;UND&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;UND&quot;</span><span class="p">,</span>
+            <span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">errors</span><span class="p">:</span>
+                <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;La importación fue abortada por errores en el archivo.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">template_name</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;config&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">})</span>
+
+        <span class="n">created</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">transaction</span><span class="o">.</span><span class="n">atomic</span><span class="p">():</span>
+                <span class="n">now</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                <span class="n">main_loc</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">main_location</span>
+                <span class="n">fecha_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">fecha_corte</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+                <span class="n">cfg</span> <span class="o">=</span> <span class="n">config</span>
+
+                <span class="k">if</span> <span class="n">replace</span><span class="p">:</span>
+                    <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                        <span class="n">period</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">main_loc</span><span class="p">,</span> <span class="n">tipo_movimiento</span><span class="o">=</span><span class="s2">&quot;INI&quot;</span><span class="p">,</span>
+                        <span class="n">fecha__date</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">fecha_corte</span><span class="p">,</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+                    <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">main_loc</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+                    <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">main_loc</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                        <span class="n">quantity</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span>
+                        <span class="n">avg_unit_cost</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span>
+                        <span class="n">updated_at</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                <span class="n">prod_tot_qty</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">))</span>
+                <span class="n">prod_tot_val</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">))</span>
+
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+                    <span class="n">prod</span><span class="p">,</span> <span class="n">lot_code</span><span class="p">,</span> <span class="n">expire_dt</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;product&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;lot_code&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;expire_date&quot;</span><span class="p">]</span>
+                    <span class="n">qty</span><span class="p">,</span> <span class="n">unit_cost</span><span class="p">,</span> <span class="n">unidad_txt</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;unit_cost&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;unidad&quot;</span><span class="p">]</span>
+
+                    <span class="n">pl_defaults</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;expire_date&quot;</span><span class="p">:</span> <span class="n">expire_dt</span><span class="p">}</span>
+                    <span class="k">if</span> <span class="n">_has_field</span><span class="p">(</span><span class="n">ProductLot</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">):</span>
+                        <span class="n">pl_defaults</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">now</span>
+                    <span class="n">lot</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ProductLot</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                        <span class="n">product</span><span class="o">=</span><span class="n">prod</span><span class="p">,</span> <span class="n">lot_code</span><span class="o">=</span><span class="n">lot_code</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="n">pl_defaults</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">_has_field</span><span class="p">(</span><span class="n">ProductLot</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">):</span>
+                        <span class="n">lot</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">now</span>
+                        <span class="n">lot</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;expire_date&quot;</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">lot</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;expire_date&quot;</span><span class="p">])</span>
+
+                    <span class="n">ls_defaults</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)}</span>
+                    <span class="k">if</span> <span class="n">_has_field</span><span class="p">(</span><span class="n">LotStock</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">):</span>
+                        <span class="n">ls_defaults</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">now</span>
+                    <span class="n">ls</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                        <span class="n">lot</span><span class="o">=</span><span class="n">lot</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">main_loc</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="n">ls_defaults</span>
+                    <span class="p">)</span>
+                    <span class="n">ls</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">q2</span><span class="p">(</span><span class="n">qty</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">_has_field</span><span class="p">(</span><span class="n">LotStock</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">):</span>
+                        <span class="n">ls</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">now</span>
+                        <span class="n">ls</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ls</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span>
+
+                    <span class="n">prod_tot_qty</span><span class="p">[(</span><span class="n">prod</span><span class="o">.</span><span class="n">pk</span><span class="p">,</span> <span class="n">main_loc</span><span class="o">.</span><span class="n">pk</span><span class="p">)]</span> <span class="o">+=</span> <span class="n">qty</span>
+                    <span class="n">prod_tot_val</span><span class="p">[(</span><span class="n">prod</span><span class="o">.</span><span class="n">pk</span><span class="p">,</span> <span class="n">main_loc</span><span class="o">.</span><span class="n">pk</span><span class="p">)]</span> <span class="o">+=</span> <span class="n">q4</span><span class="p">(</span><span class="n">qty</span> <span class="o">*</span> <span class="n">unit_cost</span><span class="p">)</span>
+
+                    <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                        <span class="n">product</span><span class="o">=</span><span class="n">prod</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">main_loc</span><span class="p">,</span> <span class="n">lot</span><span class="o">=</span><span class="n">lot</span><span class="p">,</span>
+                        <span class="n">fecha</span><span class="o">=</span><span class="n">fecha_dt</span><span class="p">,</span> <span class="n">tipo_movimiento</span><span class="o">=</span><span class="s2">&quot;INI&quot;</span><span class="p">,</span>
+                        <span class="n">descripcion</span><span class="o">=</span><span class="s2">&quot;Inventario Inicial&quot;</span><span class="p">,</span>
+                        <span class="n">valor_unitario</span><span class="o">=</span><span class="n">unit_cost</span><span class="p">,</span>
+                        <span class="n">entrada_cantidad</span><span class="o">=</span><span class="n">qty</span><span class="p">,</span> <span class="n">entrada_valor</span><span class="o">=</span><span class="n">q4</span><span class="p">(</span><span class="n">qty</span> <span class="o">*</span> <span class="n">unit_cost</span><span class="p">),</span>
+                        <span class="n">salida_cantidad</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span> <span class="n">salida_valor</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span>
+                        <span class="n">saldo_cantidad</span><span class="o">=</span><span class="n">qty</span><span class="p">,</span> <span class="n">saldo_valor</span><span class="o">=</span><span class="n">q4</span><span class="p">(</span><span class="n">qty</span> <span class="o">*</span> <span class="n">unit_cost</span><span class="p">),</span>
+                        <span class="n">proveedor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unidad</span><span class="o">=</span><span class="n">unidad_txt</span><span class="p">,</span>
+                        <span class="n">created_by</span><span class="o">=</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+                        <span class="n">period</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">created</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="k">for</span> <span class="p">(</span><span class="n">prod_id</span><span class="p">,</span> <span class="n">loc_id</span><span class="p">),</span> <span class="n">tot_qty</span> <span class="ow">in</span> <span class="n">prod_tot_qty</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">tot_val</span> <span class="o">=</span> <span class="n">prod_tot_val</span><span class="p">[(</span><span class="n">prod_id</span><span class="p">,</span> <span class="n">loc_id</span><span class="p">)]</span>
+                    <span class="n">avg</span> <span class="o">=</span> <span class="n">q4</span><span class="p">(</span><span class="n">tot_val</span> <span class="o">/</span> <span class="n">tot_qty</span><span class="p">)</span> <span class="k">if</span> <span class="n">tot_qty</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">)</span>
+                    <span class="n">inv</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                        <span class="n">product_id</span><span class="o">=</span><span class="n">prod_id</span><span class="p">,</span> <span class="n">location_id</span><span class="o">=</span><span class="n">loc_id</span><span class="p">,</span>
+                        <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span> <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">)}</span>
+                    <span class="p">)</span>
+                    <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">q2</span><span class="p">(</span><span class="n">tot_qty</span><span class="p">)</span>
+                    <span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span> <span class="o">=</span> <span class="n">avg</span>
+                    <span class="k">if</span> <span class="n">_has_field</span><span class="p">(</span><span class="n">Inventory</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">):</span>
+                        <span class="n">inv</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">now</span>
+                        <span class="n">inv</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">inv</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">])</span>
+
+            <span class="n">messages</span><span class="o">.</span><span class="n">success</span><span class="p">(</span>
+                <span class="n">request</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;Inventario inicial importado correctamente (</span><span class="si">{</span><span class="n">created</span><span class="si">}</span><span class="s2"> filas) en </span><span class="si">{</span><span class="n">config</span><span class="o">.</span><span class="n">main_location</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;initial_inventory&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="n">ValidationError</span> <span class="k">as</span> <span class="n">ve</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Error de validación: </span><span class="si">{</span><span class="n">ve</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Ocurrió un error al importar: </span><span class="si">{</span><span class="n">ex</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">template_name</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;config&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">})</span>
+
+
+<div class="viewcode-block" id="require_active_inventory_config">
+<a class="viewcode-back" href="../../api/inventory/inventory.views.html#inventory.views.require_active_inventory_config">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">require_active_inventory_config</span><span class="p">(</span><span class="n">view_func</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Protege vistas: exige InventoryConfig activa, si no, redirige al setup.&quot;&quot;&quot;</span>
+
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">view_func</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_wrapped</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Configura primero la fecha de corte y la bodega principal.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_initial_hub&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">view_func</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_wrapped</span></div>
+
+
+
+<span class="nd">@login_required</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">inventory_initial_hub</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Central hub for managing inventory periods.</span>
+<span class="sd">       :param request: HttpRequest with optional POST (to create new period)</span>
+<span class="sd">    :return: HttpResponse rendering &#39;inventory_initial_setup.html&#39; or</span>
+<span class="sd">             &#39;inventory_initial_import.html&#39;</span>
+<span class="sd">    :raises: ValueError if configuration or snapshot processing fails.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.services</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_previous_period</span><span class="p">,</span> <span class="n">aplicar_snapshot_al_periodo_activo</span><span class="p">,</span> \
+        <span class="n">construir_snapshot_desde_movimientos_periodo</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">InventoryPeriodSnapshot</span>
+
+    <span class="n">active</span> <span class="o">=</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;main_location&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">active</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;POST&quot;</span><span class="p">:</span>
+            <span class="n">form</span> <span class="o">=</span> <span class="n">InventoryConfigForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">is_valid</span><span class="p">():</span>
+                <span class="n">cfg</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+                <span class="n">prev_cfg</span> <span class="o">=</span> <span class="n">get_previous_period</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;prev_cfg: </span><span class="si">{</span><span class="n">prev_cfg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">prev_cfg</span><span class="p">:</span>
+                    <span class="n">snap</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">InventoryPeriodSnapshot</span><span class="o">.</span><span class="n">objects</span>
+                        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">periodo</span><span class="o">=</span><span class="n">prev_cfg</span><span class="p">)</span>
+                        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;-cutoff_ts&quot;</span><span class="p">)</span>
+                        <span class="o">.</span><span class="n">first</span><span class="p">()</span>
+                    <span class="p">)</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">snap</span><span class="p">:</span>
+                        <span class="n">snap</span> <span class="o">=</span> <span class="n">construir_snapshot_desde_movimientos_periodo</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">prev_cfg</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">snap</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">res</span> <span class="o">=</span> <span class="n">aplicar_snapshot_al_periodo_activo</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">snap</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                            <span class="n">messages</span><span class="o">.</span><span class="n">success</span><span class="p">(</span>
+                                <span class="n">request</span><span class="p">,</span>
+                                <span class="sa">f</span><span class="s2">&quot;Periodo creado y snapshot #</span><span class="si">{</span><span class="n">snap</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> aplicado automáticamente: &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;ini_movements&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> INI, </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;lot_items&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> lotes, </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;products&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> productos.&quot;</span>
+                            <span class="p">)</span>
+                        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                            <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Se creó el periodo, pero no se pudo aplicar el snapshot: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">messages</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Periodo creado. El anterior no tenía saldos para snapshot.&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">messages</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Periodo creado. No existe un periodo anterior cerrado para aplicar.&quot;</span><span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;inventory_initial_hub&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Por favor corrige los campos marcados.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">form</span> <span class="o">=</span> <span class="n">InventoryConfigForm</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;inventory_initial_setup.html&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;form&quot;</span><span class="p">:</span> <span class="n">form</span><span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;inventory_initial_import.html&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;config&quot;</span><span class="p">:</span> <span class="n">active</span><span class="p">})</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

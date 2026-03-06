@@ -1,0 +1,7 @@
+product.forms module
+====================
+
+.. automodule:: product.forms
+   :members:
+   :show-inheritance:
+   :undoc-members:

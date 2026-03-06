@@ -1,0 +1,7 @@
+CREATE DATABASE IF NOT EXISTS test_farmacia
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER IF NOT EXISTS 'william'@'%' IDENTIFIED BY '1234';
+
+GRANT ALL PRIVILEGES ON test_farmacia.* TO 'william'@'%';
+FLUSH PRIVILEGES;

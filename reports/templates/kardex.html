@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Kardex{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-bold">
+    {% if periods and current_period_id %}
+      {% for p in periods %}
+        {% if p.id == current_period_id %}
+          Periodo: {{ p.fecha_corte }}{% if p.is_active %} (Activo){% endif %}
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      {{ start }} <b>al</b> {{ end }}
+    {% endif %}
+  </h1>
+  <a class="btn btn-ghost" href="{% url 'kardex' %}">Limpiar</a>
+</div>
+
+<form method="get" class="grid grid-cols-1 md:grid-cols-7 gap-3 mb-4">
+  <label class="form-control">
+    <div class="label"><span class="label-text">Periodo</span></div>
+    <select name="period" class="select select-bordered w-full" onchange="this.form.submit()">
+      {% for p in periods %}
+        <option value="{{ p.id }}"> {{ p.fecha_corte }}{% if p.is_active %} (Activo){% endif %}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <!-- from -->
+  <label class="form-control">
+    <div class="label"><span class="label-text">Desde</span></div>
+    <input type="date" name="start" value="{{ start }}" class="input input-bordered w-full">
+  </label>
+
+  <!-- until -->
+  <label class="form-control">
+    <div class="label"><span class="label-text">Hasta</span></div>
+    <input type="date" name="end" value="{{ end }}" class="input input-bordered w-full">
+  </label>
+
+  <!-- Location -->
+  <label class="form-control">
+    <div class="label"><span class="label-text">Ubicación</span></div>
+    <select name="location" class="select select-bordered w-full">
+      <option value="">Todas</option>
+      {% for loc in locations %}
+        <option value="{{ loc.id_location }}" {% if selected_location == loc.id_location|stringformat:"s" %}selected{% endif %}>
+          {{ loc.code }} - {{ loc.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <!-- Product -->
+  <label class="form-control">
+    <div class="label"><span class="label-text">Producto</span></div>
+    <select name="product" class="select select-bordered w-full">
+      <option value="">Todos</option>
+      {% for p in products %}
+        <option value="{{ p.id_product }}" {% if selected_product == p.id_product|stringformat:"s" %}selected{% endif %}>
+          {{ p.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <div class="md:col-span-2 flex items-end justify-start gap-2">
+    <button class="btn btn-primary" type="submit">Filtrar</button>
+    <a class="btn btn-ghost" href="{% url 'kardex' %}">Últimos 30 días</a>
+  </div>
+</form>
+
+<div class="divider"></div>
+<div class="text-sm opacity-70 mb-3">
+  {{ filters_summary }}
+</div>
+
+
+{% with first=page_obj.object_list.0 %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+  <div class="card bg-base-200">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-2">Artículo</h3>
+      <p class="opacity-80">
+        {% if selected_product %}
+          {% for p in products %}{% if p.id_product|stringformat:"s" == selected_product %}{{ p.name }}{% endif %}{% endfor %}
+        {% elif first %}{{ first.product.name }}{% else %}—{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="card bg-base-200">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-2">Localización</h3>
+      <p class="opacity-80">
+        {% if selected_location %}
+          {% for loc in locations %}{% if loc.id_location|stringformat:"s" == selected_location %}{{ loc.code }} - {{ loc.name }}{% endif %}{% endfor %}
+        {% elif first %}{{ first.location.code }} - {{ first.location.name }}{% else %}—{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="card bg-base-200">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-2">Proveedor</h3>
+      <p class="opacity-80">
+        {% if first and first.proveedor %}{{ first.proveedor }}
+        {% elif first and first.product.provider %}{{ first.product.provider.name|default:first.product.provider|default:"—" }}
+        {% else %}—{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="card bg-base-200">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-2">Unidad</h3>
+      <p class="opacity-80">
+        {% if first and first.unidad %}{{ first.unidad }}
+        {% elif first %}{{ first.product.meassure_unit|default:"—" }}
+        {% else %}—{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="card bg-base-200">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-2">Stock Máx.</h3>
+      <p class="opacity-80">
+        {{ inv_max|default:"—" }}
+      </p>
+    </div>
+  </div>
+
+  <div class="card bg-base-200">
+    <div class="card-body p-4">
+      <h3 class="font-semibold mb-2">Stock Mín.</h3>
+      <p class="opacity-80">
+        {{ inv_min|default:"—" }}
+      </p>
+    </div>
+  </div>
+</div>
+{% endwith %}
+
+<div class="overflow-x-auto card shadow-sm">
+  <table class="table table-zebra table-sm">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Descripción</th>
+        <th class="text-right">Vlr. Unit.</th>
+        <th class="text-right">Ent. Cant.</th>
+        <th class="text-right">Ent. Valor</th>
+        <th class="text-right">Sal. Cant.</th>
+        <th class="text-right">Sal. Valor</th>
+        <th class="text-right">Saldo Cant.</th>
+        <th class="text-right">Saldo Valor</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in page_obj.object_list %}
+      <tr>
+        <td>{{ m.fecha|date:"d-m-Y H:i" }}</td>
+        <td class="max-w-72 truncate" title="{{ m.descripcion }}">
+          <span class="badge badge-outline mr-2">{{ m.tipo_movimiento }}</span>
+          {{ m.descripcion }}
+        </td>
+          <td class="text-right">{{ m.valor_unitario }}</td>
+        <td class="text-right">{{ m.entrada_cantidad }}</td>
+        <td class="text-right">{{ m.entrada_valor }}</td>
+        <td class="text-right">{{ m.salida_cantidad }}</td>
+        <td class="text-right">{{ m.salida_valor }}</td>
+        <td class="text-right">{{ m.saldo_cantidad }}</td>
+        <td class="text-right">{{ m.saldo_valor }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9" class="text-center">Sin movimientos...</td></tr>
+      {% endfor %}
+    </tbody>
+
+    {% if totals %}
+    <tfoot>
+      <tr>
+        <th colspan="3" class="text-right">Totales:</th>
+        <th class="text-right">{{ totals.entrada_cantidad|default_if_none:"0.00" }}</th>
+        <th class="text-right">{{ totals.entrada_valor|default_if_none:"0.00" }}</th>
+        <th class="text-right">{{ totals.salida_cantidad|default_if_none:"0.00" }}</th>
+        <th class="text-right">{{ totals.salida_valor|default_if_none:"0.00" }}</th>
+        <th colspan="2"></th>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+
+<div class="join mt-4">
+  {% if page_obj.has_previous %}
+    <a class="btn btn-sm join-item"
+       href="?period={{ current_period_id }}&start={{ start }}&end={{ end }}{% if selected_location %}&location={{ selected_location }}{% endif %}{% if selected_product %}&product={{ selected_product }}{% endif %}&page=1">«</a>
+    <a class="btn btn-sm join-item"
+       href="?period={{ current_period_id }}&start={{ start }}&end={{ end }}{% if selected_location %}&location={{ selected_location }}{% endif %}{% if selected_product %}&product={{ selected_product }}{% endif %}&page={{ page_obj.previous_page_number }}">‹</a>
+  {% else %}
+    <button class="btn btn-sm join-item" disabled>«</button>
+    <button class="btn btn-sm join-item" disabled>‹</button>
+  {% endif %}
+
+  <button class="btn btn-sm join-item" disabled>
+    Página {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+  </button>
+
+  {% if page_obj.has_next %}
+    <a class="btn btn-sm join-item"
+       href="?period={{ current_period_id }}&start={{ start }}&end={{ end }}{% if selected_location %}&location={{ selected_location }}{% endif %}{% if selected_product %}&product={{ selected_product }}{% endif %}&page={{ page_obj.next_page_number }}">›</a>
+    <a class="btn btn-sm join-item"
+       href="?period={{ current_period_id }}&start={{ start }}&end={{ end }}{% if selected_location %}&location={{ selected_location }}{% endif %}{% if selected_product %}&product={{ selected_product }}{% endif %}&page={{ page_obj.paginator.num_pages }}">»</a>
+  {% else %}
+    <button class="btn btn-sm join-item" disabled>›</button>
+    <button class="btn btn-sm join-item" disabled>»</button>
+  {% endif %}
+</div>
+
+{% endblock %}

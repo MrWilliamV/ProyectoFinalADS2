@@ -1,0 +1,7 @@
+product.apps module
+===================
+
+.. automodule:: product.apps
+   :members:
+   :show-inheritance:
+   :undoc-members:

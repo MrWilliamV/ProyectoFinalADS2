@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between gap-3">
+    <div>
+      <h1 class="text-3xl font-bold">Traslado de inventario</h1>
+      <p class="text-sm opacity-70">
+        Selecciona un lote del <b>origen</b>, luego ingresa la cantidad y el <b>destino</b>.
+      </p>
+    </div>
+    <a href="{% url 'inventory_transfer' %}" class="btn btn-ghost">Recargar</a>
+  </div>
+
+  {% if messages %}
+  <div class="space-y-2">
+    {% for m in messages %}
+    <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+      <span>{{ m }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="get" class="card bg-base-100 shadow-sm">
+    <div class="card-body grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Origin -->
+      <label class="form-control">
+        <div class="label"><span class="label-text">Origen</span></div>
+        <select name="origin" class="select select-bordered w-full">
+          {% for loc in locations %}
+          <option value="{{ loc.id_location }}"
+                  {% if loc.id_location|stringformat:'s' == origin_id|stringformat:'s' %}selected{% endif %}>
+            {{ loc.name }} ({{ loc.code }})
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <!-- Product -->
+      <label class="form-control md:col-span-2">
+        <div class="label"><span class="label-text">Producto</span></div>
+        <select name="product" class="select select-bordered w-full">
+          <option value="">Todos</option>
+          {% for p in products %}
+          <option value="{{ p.id_product }}"
+                  {% if selected_product and selected_product|stringformat:'s' == p.id_product|stringformat:'s' %}selected{% endif %}>
+            {{ p.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <div class="flex items-end gap-2">
+        <button class="btn btn-primary">Filtrar</button>
+        <a href="{% url 'inventory_transfer' %}" class="btn btn-ghost">Limpiar</a>
+      </div>
+    </div>
+  </form>
+
+  <form method="post" class="card bg-base-100 shadow-sm">
+    {% csrf_token %}
+    <input type="hidden" name="origin" value="{{ origin_id }}"/>
+
+    <div class="card-body space-y-6">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+        <label class="form-control">
+          <div class="label"><span class="label-text">Destino</span></div>
+          <select name="to_location" class="select select-bordered w-full" required>
+            {% for loc in locations %}
+              {% if loc.id_location|stringformat:'s' != origin_id|stringformat:'s' %}
+                <option value="{{ loc.id_location }}">{{ loc.name }} ({{ loc.code }})</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="form-control">
+          <div class="label"><span class="label-text">Cantidad a trasladar</span></div>
+          <input type="number" name="quantity" step="1" min="1"
+                 class="input input-bordered w-full" placeholder="Ej. 99" required>
+        </label>
+      </div>
+
+      <div class="divider">Selecciona un lote</div>
+
+      <input type="hidden" name="selected" id="selected_hidden">
+
+      <div class="overflow-x-auto">
+        <table class="table table-zebra">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Producto</th>
+              <th>Código lote</th>
+              <th class="text-right">Cantidad</th>
+              <th class="text-right">Precio (prom.)</th>
+              <th>Vence</th>
+              <th>Actualizado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in page_obj %}
+            <!-- row on LotStock -->
+            <tr onclick="const r=document.getElementById('r{{ forloop.counter }}'); if(r){ r.checked=true; document.getElementById('selected_hidden').value=r.value; }">
+              <td>
+                <input id="r{{ forloop.counter }}"
+                       type="radio"
+                       name="selected"
+                       value="{{ row.lot.id_lot }}:{{ row.lot.product.id_product }}"
+                       {% if forloop.first %}required{% endif %}
+                       onchange="document.getElementById('selected_hidden').value=this.value">
+              </td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <span class="font-medium">{{ row.lot.product.name }}</span>
+                  <span class="badge badge-ghost badge-sm">ORIG {{ row.location.code }}</span>
+                </div>
+              </td>
+              <td class="font-mono text-xs">{{ row.lot.lot_code }}</td>
+              <td class="text-right">{{ row.quantity }}</td>
+              <td class="text-right">—</td>
+              <td>{{ row.lot.expire_date|date:"Y-m-d" }}</td>
+              <td>{{ row.updated_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-8 opacity-70">Sin lotes en esta ubicación.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginator -->
+      <div class="flex items-center justify-between mt-4">
+        <div class="text-sm opacity-70">
+          Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </div>
+        <div class="join">
+          {% if page_obj.has_previous %}
+            <a class="join-item btn btn-sm"
+               href="?origin={{ origin_id }}{% if selected_product %}&product={{ selected_product }}{% endif %}&page={{ page_obj.previous_page_number }}">«</a>
+          {% else %}
+            <button class="join-item btn btn-sm btn-disabled" type="button">«</button>
+          {% endif %}
+          <button class="join-item btn btn-sm btn-ghost" type="button">{{ page_obj.number }}</button>
+          {% if page_obj.has_next %}
+            <a class="join-item btn btn-sm"
+               href="?origin={{ origin_id }}{% if selected_product %}&product={{ selected_product }}{% endif %}&page={{ page_obj.next_page_number }}">»</a>
+          {% else %}
+            <button class="join-item btn btn-sm btn-disabled" type="button">»</button>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card-actions justify-end">
+        <button type="submit" class="btn btn-primary">Trasladar</button>
+      </div>
+
+    </div>
+  </form>
+
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+product package
+===============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   product.migrations
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   product.admin
+   product.apps
+   product.forms
+   product.models
+   product.tests
+   product.urls
+   product.views
+
+Module contents
+---------------
+
+.. automodule:: product
+   :members:
+   :show-inheritance:
+   :undoc-members:

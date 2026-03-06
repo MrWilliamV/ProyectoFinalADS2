@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Mi perfil{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto mt-8">
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title">Perfil del usuario</h2>
+      <p class="opacity-70">Información general de tu cuenta en el sistema.</p>
+      <div class="divider my-2"></div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-2">
+          <p><span class="font-semibold">Usuario:</span> {{ user.username }}</p>
+          <p><span class="font-semibold">Nombre completo:</span> {{ user.first_name }} {{ user.last_name }}</p>
+          <p><span class="font-semibold">Correo:</span> {{ user.email }}</p>
+          <p>
+            <span class="font-semibold">Estado:</span>
+            {% if user.is_active %}
+              <span class="badge badge-success">Activo</span>
+            {% else %}
+              <span class="badge badge-neutral">Inactivo</span>
+            {% endif %}
+          </p>
+          <p>
+            <span class="font-semibold">Rol:</span>
+            {% if role %}
+              <span class="badge badge-primary">{{ role.name }}</span>
+            {% else %}
+              <span class="badge">Sin rol asignado</span>
+            {% endif %}
+          </p>
+        </div>
+
+        <div class="border border-base-300 rounded-lg p-3 bg-base-200">
+          <p class="font-semibold mb-2">Responsabilidades del rol</p>
+          {% if role %}
+            {% if role.name == "ADMINISTRADOR" %}
+              <ul class="list-disc pl-5 text-sm">
+                <li>Puede acceder a todas las funcionalidades del sistema.</li>
+                <li>Puede crear, editar y eliminar usuarios.</li>
+                <li>Puede gestionar inventario, ventas y reportes.</li>
+              </ul>
+            {% elif role.name == "VENDEDOR" %}
+              <ul class="list-disc pl-5 text-sm">
+                <li>Puede realizar ventas y emitir facturas.</li>
+                <li>Puede aperturar caja y registrar movimientos de efectivo.</li>
+              </ul>
+            {% elif role.name == "AUDITOR" %}
+              <ul class="list-disc pl-5 text-sm">
+                <li>Puede exportar reportes de caja, inventario y kardex.</li>
+                <li>Tiene acceso de solo lectura a la información del sistema.</li>
+              </ul>
+            {% elif role.name == "JEFE_ALMACEN" %}
+              <ul class="list-disc pl-5 text-sm">
+                <li>Puede ver el inventario y realizar transferencias de stock.</li>
+                <li>Puede registrar entradas por lote e inventario inicial (cuando hay período previo activo).</li>
+                <li>Puede crear, editar o eliminar productos del catálogo.</li>
+              </ul>
+            {% else %}
+              <p class="text-sm opacity-70">No hay descripción para este rol.</p>
+            {% endif %}
+          {% else %}
+            <p class="text-sm opacity-70">No tienes un rol asignado actualmente.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="divider my-4"></div>
+
+      <div class="flex justify-end">
+        <a href="{% url 'users' %}" class="btn btn-ghost">Volver</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

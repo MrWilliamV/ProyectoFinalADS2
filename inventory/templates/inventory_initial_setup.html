@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Configurar Inventario Inicial{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto p-4">
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title">Configurar Inventario Inicial</h2>
+      <p class="text-sm opacity-70">
+        Selecciona el <strong>periodo contable</strong> y la <strong>bodega principal</strong>. La fecha de corte se calculará automáticamente como el <em>último día</em> del periodo del año actual.
+      </p>
+
+      {% if messages %}
+      <div class="space-y-2 mt-3">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+          <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form method="post" class="space-y-4 mt-4">
+        {% csrf_token %}
+
+        <label class="form-control">
+          <div class="label"><span class="label-text">Periodo contable</span></div>
+          {{ form.period }}
+          {% if form.period.errors %}
+            <span class="text-error text-sm">{{ form.period.errors.0 }}</span>
+          {% endif %}
+        </label>
+
+        <label class="label cursor-pointer justify-start gap-3">
+          {{ form.auto_detect }}
+          <span class="label-text">Detectar periodo según la fecha actual</span>
+        </label>
+        {% if form.auto_detect.errors %}
+          <span class="text-error text-sm">{{ form.auto_detect.errors.0 }}</span>
+        {% endif %}
+
+        <label class="form-control">
+          <div class="label"><span class="label-text">Bodega principal (WH)</span></div>
+          {{ form.main_location }}
+          {% if form.main_location.errors %}
+            <span class="text-error text-sm">{{ form.main_location.errors.0 }}</span>
+          {% endif %}
+        </label>
+
+        <div class="card-actions justify-end mt-2">
+          <button type="submit" class="btn btn-primary">Guardar configuración</button>
+        </div>
+      </form>
+
+      <div class="divider"></div>
+      <p class="text-xs opacity-70">
+        Esta configuración quedará <strong>activa</strong> para el nuevo periodo. Solo puede existir una activa a la vez.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

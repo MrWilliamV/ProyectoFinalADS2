@@ -1,0 +1,388 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>inventory.forms &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">inventory.forms</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para inventory.forms</h1><div class="highlight"><pre>
+<span></span><span class="c1"># apps/inventory/forms.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">email.policy</span><span class="w"> </span><span class="kn">import</span> <span class="n">default</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">strftime</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">django</span><span class="w"> </span><span class="kn">import</span> <span class="n">forms</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">supplier.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Supplier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Location</span><span class="p">,</span> <span class="n">Inventory</span><span class="p">,</span> <span class="n">InventoryConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">product.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Product</span><span class="p">,</span> <span class="n">MeasureUnit</span>
+
+<span class="n">UNIDADES_CHOICES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;ML&quot;</span><span class="p">,</span> <span class="s2">&quot;Mililitro&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;MG&quot;</span><span class="p">,</span> <span class="s2">&quot;Miligramo&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;GR&quot;</span><span class="p">,</span> <span class="s2">&quot;Gramo&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;KG&quot;</span><span class="p">,</span> <span class="s2">&quot;Kilogramo&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;LT&quot;</span><span class="p">,</span> <span class="s2">&quot;Litro&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;CJ&quot;</span><span class="p">,</span> <span class="s2">&quot;Caja&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="n">MOV_CHOICES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;PUR&quot;</span><span class="p">,</span> <span class="s2">&quot;Entrada (Compra)&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+
+<div class="viewcode-block" id="InventoryMoveForm">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.InventoryMoveForm">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InventoryMoveForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">           movement_type (CharField): Hidden field; must be &#39;PUR&#39;.</span>
+<span class="sd">        location (ModelChoiceField): Destination location for the entry.</span>
+<span class="sd">        product (ModelChoiceField): Product being received.</span>
+<span class="sd">        lot_code (CharField): Lot identifier associated with the product.</span>
+<span class="sd">        expire_date (DateField): Expiration date for the lot.</span>
+<span class="sd">        quantity (DecimalField): Received quantity (min 0.01).</span>
+<span class="sd">        unit_price_in (DecimalField): Unit cost for the incoming stock.</span>
+<span class="sd">        supplier (ModelChoiceField): Supplier associated with the purchase.</span>
+<span class="sd">        descripcion (CharField): Free-text description for the transaction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">movement_type</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">initial</span><span class="o">=</span><span class="s2">&quot;PUR&quot;</span><span class="p">,</span> <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">HiddenInput</span><span class="p">())</span>
+
+    <span class="n">location</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ModelChoiceField</span><span class="p">(</span>
+        <span class="n">queryset</span><span class="o">=</span><span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">none</span><span class="p">(),</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Ubicación&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Select</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;select select-bordered w-full&quot;</span><span class="p">})</span>
+    <span class="p">)</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ModelChoiceField</span><span class="p">(</span>
+        <span class="n">queryset</span><span class="o">=</span><span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">none</span><span class="p">(),</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Producto&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Select</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;select select-bordered w-full&quot;</span><span class="p">})</span>
+    <span class="p">)</span>
+
+    <span class="n">lot_code</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Codigo de lote&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                               <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">TextInput</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">}))</span>
+    <span class="n">expire_date</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Fecha de vencimiento&quot;</span><span class="p">,</span>
+                                  <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                  <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">DateInput</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">}))</span>
+    <span class="n">quantity</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                  <span class="n">min_value</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.01&quot;</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Cantidad&quot;</span><span class="p">,</span>
+                                  <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">NumberInput</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">}))</span>
+    <span class="n">unit_price_in</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+                                       <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                       <span class="n">min_value</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.01&quot;</span><span class="p">),</span>
+                                       <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Valor unitario&quot;</span><span class="p">,</span>
+                                       <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">NumberInput</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">}))</span>
+
+    <span class="c1"># NEW: Proveedor (requerido en compras)</span>
+    <span class="n">supplier</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ModelChoiceField</span><span class="p">(</span>
+        <span class="n">queryset</span><span class="o">=</span><span class="n">Supplier</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Proveedor&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Select</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;select select-bordered w-full&quot;</span><span class="p">})</span>
+    <span class="p">)</span>
+
+    <span class="n">descripcion</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="s2">&quot;Ingreso por compra&quot;</span><span class="p">,</span>
+                                  <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Descripción&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                  <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">TextInput</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">}))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">queryset</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;product&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">queryset</span> <span class="o">=</span> <span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+
+        <span class="n">today_str</span> <span class="o">=</span> <span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;expire_date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">widget</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">today_str</span>
+
+<div class="viewcode-block" id="InventoryMoveForm.clean">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.InventoryMoveForm.clean">[documentos]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;movement_type&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;PUR&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;movement_type&quot;</span><span class="p">,</span> <span class="s2">&quot;Solo se permiten movimientos de entrada (compra).&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;unit_price_in&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;unit_price_in&quot;</span><span class="p">,</span> <span class="s2">&quot;Requerido para entradas.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;expire_date&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;expire_date&quot;</span><span class="p">,</span> <span class="s2">&quot;Requerido para entradas.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lot_code&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;lot_code&quot;</span><span class="p">,</span> <span class="s2">&quot;Requerido para identificar el lote.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;supplier&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;supplier&quot;</span><span class="p">,</span> <span class="s2">&quot;Selecciona un proveedor.&quot;</span><span class="p">)</span>
+
+        <span class="n">product</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;product&quot;</span><span class="p">)</span>
+        <span class="n">location</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">)</span>
+        <span class="n">quantity</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quantity&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">product</span> <span class="ow">and</span> <span class="n">location</span> <span class="ow">and</span> <span class="n">quantity</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">inv</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">)</span>
+                <span class="n">max_stock</span> <span class="o">=</span> <span class="n">inv</span><span class="o">.</span><span class="n">max_stock</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+                <span class="n">current</span> <span class="o">=</span> <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">max_stock</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">current</span> <span class="o">+</span> <span class="n">quantity</span> <span class="o">&gt;</span> <span class="n">max_stock</span><span class="p">:</span>
+                    <span class="n">remaining</span> <span class="o">=</span> <span class="n">max_stock</span> <span class="o">-</span> <span class="n">current</span>
+                    <span class="k">if</span> <span class="n">remaining</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">remaining</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span>
+                        <span class="s2">&quot;quantity&quot;</span><span class="p">,</span>
+                        <span class="sa">f</span><span class="s2">&quot;La entrada excede el máximo en </span><span class="si">{</span><span class="n">location</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;Máximo: </span><span class="si">{</span><span class="n">max_stock</span><span class="si">}</span><span class="s2">, actual: </span><span class="si">{</span><span class="n">current</span><span class="si">}</span><span class="s2">. &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;Puedes ingresar como mucho </span><span class="si">{</span><span class="n">remaining</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">except</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="k">return</span> <span class="n">data</span></div>
+</div>
+
+
+<div class="viewcode-block" id="LotTransferForm">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.LotTransferForm">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LotTransferForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    product (ModelChoiceField): Product to transfer.</span>
+<span class="sd">        lot_code (CharField): Lot identifier to transfer.</span>
+<span class="sd">        from_location (ModelChoiceField): Origin location.</span>
+<span class="sd">        to_location (ModelChoiceField): Destination location.</span>
+<span class="sd">        quantity (DecimalField): Quantity to transfer (min 0.01).</span>
+<span class="sd">        unidad (ChoiceField): Unit of measure for the transfer.</span>
+<span class="sd">        descripcion (CharField): Optional description of the transfer.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ModelChoiceField</span><span class="p">(</span><span class="n">queryset</span><span class="o">=</span><span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Producto&quot;</span><span class="p">)</span>
+    <span class="n">lot_code</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Código de lote&quot;</span><span class="p">)</span>
+    <span class="n">from_location</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ModelChoiceField</span><span class="p">(</span><span class="n">queryset</span><span class="o">=</span><span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;id_location&quot;</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Desde&quot;</span><span class="p">)</span>
+    <span class="n">to_location</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ModelChoiceField</span><span class="p">(</span><span class="n">queryset</span><span class="o">=</span><span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;id_location&quot;</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Hacia&quot;</span><span class="p">)</span>
+    <span class="n">quantity</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">min_value</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.01&quot;</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Cantidad&quot;</span><span class="p">)</span>
+    <span class="n">unidad</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ChoiceField</span><span class="p">(</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;UND&quot;</span><span class="p">,</span> <span class="s2">&quot;Unidad&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;ML&quot;</span><span class="p">,</span> <span class="s2">&quot;Mililitro&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;MG&quot;</span><span class="p">,</span> <span class="s2">&quot;Miligramo&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;GR&quot;</span><span class="p">,</span> <span class="s2">&quot;Gramo&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;KG&quot;</span><span class="p">,</span> <span class="s2">&quot;Kilogramo&quot;</span><span class="p">),</span>
+                 <span class="p">(</span><span class="s2">&quot;LT&quot;</span><span class="p">,</span> <span class="s2">&quot;Litro&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;CJ&quot;</span><span class="p">,</span> <span class="s2">&quot;Caja&quot;</span><span class="p">)],</span> <span class="n">initial</span><span class="o">=</span><span class="s2">&quot;UND&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Unidad&quot;</span><span class="p">)</span>
+    <span class="n">descripcion</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="s2">&quot;Traslado de bodega a tienda&quot;</span><span class="p">,</span>
+                                  <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Descripción&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LotTransferForm.clean">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.LotTransferForm.clean">[documentos]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;from_location&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;to_location&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;from_location&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;to_location&quot;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s2">&quot;to_location&quot;</span><span class="p">,</span> <span class="s2">&quot;La ubicación de destino debe ser distinta a la de origen.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="InventoryInitialImportForm">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.InventoryInitialImportForm">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InventoryInitialImportForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">      file (FileField): .xlsx file containing product rows.</span>
+<span class="sd">        replace_existing (BooleanField): Replace previously loaded initial inventory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">FileField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Archivo Excel (xlsx)&quot;</span><span class="p">,</span>
+        <span class="n">help_text</span><span class="o">=</span><span class="s2">&quot;Debe contener columnas: codigo_producto, cantidad_inicial, costo_unitario (opcional: lote, vencimiento).&quot;</span>
+    <span class="p">)</span>
+    <span class="n">replace_existing</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reemplazar inventario inicial previo&quot;</span><span class="p">,</span>
+        <span class="n">help_text</span><span class="o">=</span><span class="s2">&quot;Si ya cargaste un inventario inicial antes, marca esta opción para borrarlo y reemplazarlo.&quot;</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="InventoryInitialImportForm.clean_file">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.InventoryInitialImportForm.clean_file">[documentos]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.xlsx&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;Sube un archivo .xlsx&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;Archivo demasiado grande (máx 5MB).&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">f</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="InventoryConfigForm">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.InventoryConfigForm">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InventoryConfigForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">ModelForm</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     period (ChoiceField): Accounting half-year period (H1/H2).</span>
+<span class="sd">        auto_detect (BooleanField): Auto-detect period from current date.</span>
+<span class="sd">        main_location (ModelChoiceField): Main warehouse (typically code WH).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">PERIOD_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s2">&quot;H1&quot;</span><span class="p">,</span> <span class="s2">&quot;Enero – Junio&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;H2&quot;</span><span class="p">,</span> <span class="s2">&quot;Julio – Diciembre&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Nuevo: selección de periodo y checkbox de autodetección</span>
+    <span class="n">period</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ChoiceField</span><span class="p">(</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">PERIOD_CHOICES</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Periodo contable&quot;</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Select</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;select select-bordered w-full&quot;</span><span class="p">}),</span>
+    <span class="p">)</span>
+    <span class="n">auto_detect</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Detectar periodo según fecha actual&quot;</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">CheckboxInput</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;checkbox&quot;</span><span class="p">}),</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Ya no exponemos fecha_corte al usuario; la calculamos en save()</span>
+    <span class="n">main_location</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ModelChoiceField</span><span class="p">(</span>
+        <span class="n">queryset</span><span class="o">=</span><span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">none</span><span class="p">(),</span>  <span class="c1"># se rellena en __init__</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Bodega principal (WH)&quot;</span><span class="p">,</span>
+        <span class="n">empty_label</span><span class="o">=</span><span class="s2">&quot;-- Seleccione bodega (WH) --&quot;</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Select</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;select select-bordered w-full&quot;</span><span class="p">}),</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="InventoryConfigForm.Meta">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.InventoryConfigForm.Meta">[documentos]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">InventoryConfig</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;period&quot;</span><span class="p">,</span> <span class="s2">&quot;auto_detect&quot;</span><span class="p">,</span> <span class="s2">&quot;main_location&quot;</span><span class="p">]</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Solo mostrar la(s) bodegas WH; ajusta si usas varios códigos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;main_location&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">queryset</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">code__iexact</span><span class="o">=</span><span class="s2">&quot;WH&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;main_location&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">label_from_instance</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">o</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">o</span><span class="o">.</span><span class="n">code</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+        <span class="c1"># Estado interno para la fecha calculada</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fecha_corte</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="InventoryConfigForm.clean">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.InventoryConfigForm.clean">[documentos]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cleaned</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+        <span class="n">auto</span> <span class="o">=</span> <span class="n">cleaned</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;auto_detect&quot;</span><span class="p">)</span>
+        <span class="n">per</span> <span class="o">=</span> <span class="n">cleaned</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;period&quot;</span><span class="p">)</span>
+
+        <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+        <span class="n">year</span> <span class="o">=</span> <span class="n">today</span><span class="o">.</span><span class="n">year</span>
+
+        <span class="c1"># Determinar periodo</span>
+        <span class="k">if</span> <span class="n">auto</span><span class="p">:</span>
+            <span class="c1"># Detectar periodo por fecha actual</span>
+            <span class="n">per</span> <span class="o">=</span> <span class="s2">&quot;H1&quot;</span> <span class="k">if</span> <span class="n">today</span><span class="o">.</span><span class="n">month</span> <span class="o">&lt;=</span> <span class="mi">6</span> <span class="k">else</span> <span class="s2">&quot;H2&quot;</span>
+            <span class="n">cleaned</span><span class="p">[</span><span class="s2">&quot;period&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">per</span>  <span class="c1"># para que se refleje en el template si re-renderiza</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Selección manual obligatoria</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">per</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span>
+                    <span class="s2">&quot;Selecciona un periodo contable o marca la casilla de detección automática.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Calcular fecha_corte como último día del periodo del año actual</span>
+        <span class="k">if</span> <span class="n">per</span> <span class="o">==</span> <span class="s2">&quot;H1&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fecha_corte</span> <span class="o">=</span> <span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># H2</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fecha_corte</span> <span class="o">=</span> <span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cleaned</span></div>
+
+
+<div class="viewcode-block" id="InventoryConfigForm.save">
+<a class="viewcode-back" href="../../api/inventory/inventory.forms.html#inventory.forms.InventoryConfigForm.save">[documentos]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">commit</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># fijar la fecha de corte calculada</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">fecha_corte</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fecha_corte</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">is_active</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">commit</span><span class="p">:</span>
+            <span class="c1"># Desactivar otras activas</span>
+            <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

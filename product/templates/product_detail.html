@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="px-4 md:px-6 lg:px-8 py-6">
+  <div class="max-w-6xl mx-auto">
+
+    {% with role=request.user.groups.all.0 %}
+    <div class="mb-6 flex items-center justify-between">
+      <h1 class="text-2xl font-bold">{{ product.name }}</h1>
+
+      {# Botones Editar/Cancelar solo para ADMIN o JEFE_ALMACEN #}
+      {% if role and role.name == "ADMINISTRADOR" or role and role.name == "JEFE_ALMACEN" %}
+        {% if editable %}
+          <a href="{% url 'product_detail' product.id_product %}" class="btn btn-ghost">Cancelar edición</a>
+        {% else %}
+          <a href="{% url 'product_detail' product.id_product %}?edit=1" class="btn btn-primary">Editar</a>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    {% if messages %}
+      <div class="space-y-2 mb-4">
+        {% for m in messages %}
+        <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+          <span>{{ m }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if form.errors %}
+      <div class="alert alert-error mb-4"><span>Revisa los campos marcados.</span></div>
+    {% endif %}
+
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <section class="lg:col-span-8 card bg-base-100 border border-base-200 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title">Detalles del producto</h2>
+
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text">Nombre <span class="text-error">*</span></span></label>
+              {# Si se puede editar (editable + rol permitido) mostramos el field real; si no, un input disabled con el valor #}
+              {% if editable and role and role.name == "ADMINISTRADOR" or editable and role and role.name == "JEFE_ALMACEN" %}
+                {{ form.name }}
+              {% else %}
+                <input class="input input-bordered w-full opacity-60" value="{{ form.name.value|default:product.name }}" disabled>
+              {% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mt-2">
+              <div class="form-control md:col-span-12">
+                <label class="label"><span class="label-text">Descripción</span></label>
+                {% if editable and role and role.name == "ADMINISTRADOR" or editable and role and role.name == "JEFE_ALMACEN" %}
+                  {{ form.description }}
+                {% else %}
+                  <textarea class="textarea textarea-bordered w-full opacity-60" disabled>{{ form.description.value|default:product.description }}</textarea>
+                {% endif %}
+              </div>
+
+              <div class="form-control md:col-span-6">
+                <label class="label"><span class="label-text">Marca</span></label>
+                {% if editable and role and role.name == "ADMINISTRADOR" or editable and role and role.name == "JEFE_ALMACEN" %}
+                  {{ form.brand }}
+                {% else %}
+                  <input class="input input-bordered w-full opacity-60" value="{{ product.brand }}" disabled>
+                {% endif %}
+              </div>
+
+              <div class="form-control md:col-span-6">
+                <label class="label"><span class="label-text">Categoría</span></label>
+                {% if editable and role and role.name == "ADMINISTRADOR" or editable and role and role.name == "JEFE_ALMACEN" %}
+                  {{ form.category }}
+                {% else %}
+                  <input class="input input-bordered w-full opacity-60" value="{{ product.category }}" disabled>
+                {% endif %}
+              </div>
+
+              <div class="form-control md:col-span-6">
+                <label class="label"><span class="label-text">Unidad de medida</span></label>
+                {% if editable and role and role.name == "ADMINISTRADOR" or editable and role and role.name == "JEFE_ALMACEN" %}
+                  {{ form.measure_unit }}
+                {% else %}
+                  <input class="input input-bordered w-full opacity-60" value="{{ product.measure_unit }}" disabled>
+                {% endif %}
+              </div>
+
+              <div class="form-control md:col-span-6">
+                <label class="label"><span class="label-text">Fecha expiración</span></label>
+                {% if editable and role and role.name == "ADMINISTRADOR" or editable and role and role.name == "JEFE_ALMACEN" %}
+                  {{ form.expire_date }}
+                {% else %}
+                  <input class="input input-bordered w-full opacity-60" " disabled>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="lg:col-span-4 card bg-base-100 border border-base-200 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title">Estado</h2>
+            <div class="form-control mt-2">
+              <label class="label cursor-pointer justify-start gap-3">
+                {% if editable and role and role.name == "ADMINISTRADOR" or editable and role and role.name == "JEFE_ALMACEN" %}
+                  {{ form.active }}
+                {% else %}
+                  <input type="checkbox" class="checkbox" {% if product.active %}checked{% endif %} disabled>
+                {% endif %}
+                <span class="label-text">Activo</span>
+              </label>
+              <p class="text-sm text-base-content/60 mt-2">
+                Activar o desactivar este producto.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="divider my-2"></div>
+
+      <section class="card bg-base-100 border border-base-200 shadow-sm">
+        <div class="card-body">
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <h2 class="card-title">Stock por bodega</h2>
+            <span class="text-sm opacity-70">Define mínimos y máximos para ST y WH</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th class="w-40">Bodega</th>
+                  <th class="text-right w-32">Existencia</th>
+                  <th class="text-right w-32">Costo prom.</th>
+                  <th class="text-right w-36">Mínimo</th>
+                  <th class="text-right w-36">Máximo</th>
+                  <th class="w-28">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for inv in inventories %}
+                <tr>
+                  <td class="whitespace-nowrap">{{ inv.location.name }} ({{ inv.location.code }})</td>
+                  <td class="text-right">{{ inv.quantity }}</td>
+                  <td class="text-right">{{ inv.avg_unit_cost }}</td>
+                  <td class="text-right">
+                    <input name="min_{{ inv.pk }}" type="number" step="0.01" min="0"
+                           value="{{ inv.min_stock }}"
+                           class="input input-bordered input-sm w-32 text-right {% if not editable or not role or not role.name == 'ADMINISTRADOR' and not role.name == 'JEFE_ALMACEN' %}opacity-60{% endif %}"
+                           {% if not editable or not role or not role.name == 'ADMINISTRADOR' and not role.name == 'JEFE_ALMACEN' %}disabled{% endif %}>
+                  </td>
+                  <td class="text-right">
+                    <input name="max_{{ inv.pk }}" type="number" step="0.01" min="0"
+                           value="{{ inv.max_stock }}"
+                           class="input input-bordered input-sm w-32 text-right {% if not editable or not role or not role.name == 'ADMINISTRADOR' and not role.name == 'JEFE_ALMACEN' %}opacity-60{% endif %}"
+                           {% if not editable or not role or not role.name == 'ADMINISTRADOR' and not role.name == 'JEFE_ALMACEN' %}disabled{% endif %}>
+                  </td>
+                  <td>
+                    {% if inv.quantity <= inv.min_stock %}
+                      <span class="badge badge-error">Bajo</span>
+                    {% elif inv.max_stock and inv.quantity >= inv.max_stock %}
+                      <span class="badge badge-warning">Alto</span>
+                    {% else %}
+                      <span class="badge badge-success">OK</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center">Sin inventario en bodegas.</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <div class="flex justify-end gap-2">
+        {% if editable and role and role.name == "ADMINISTRADOR" or editable and role and role.name == "JEFE_ALMACEN" %}
+          <button type="submit" class="btn btn-primary">Guardar todo</button>
+          <a href="{% url 'product_detail' product.id_product %}" class="btn btn-ghost">Cancelar</a>
+        {% endif %}
+      </div>
+    </form>
+
+    {% endwith %}
+  </div>
+</div>
+{% endblock %}

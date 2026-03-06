@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Inventario Inicial{% endblock %}
+
+{% block content %}
+<div class="flex justify-center p-4">
+  <div class="card bg-base-100 shadow border border-base-300 w-fit">
+    <div class="card-body">
+      <h2 class="card-title">Gestión de Inventario Inicial</h2>
+
+      <p class="text-sm opacity-80 mb-2">
+        <strong>Configuración activa:</strong> {{ config.main_location.name }} <br>
+        <strong>Fecha de corte:</strong> {{ config.fecha_corte }}
+      </p>
+
+      {% if messages %}
+      <div class="space-y-2 mb-4">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+          <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="mb-6">
+        <h3 class="font-semibold text-lg mb-2">Acciones del periodo</h3>
+        <p class="text-sm opacity-70 mb-2">
+          Al cerrar el periodo se generará un snapshot y el sistema quedará listo para crear el nuevo periodo.
+          Al crear un nuevo periodo, el sistema <strong>aplicará automáticamente</strong> el snapshot anterior (si existe).
+        </p>
+
+        {% if config and config.is_active %}
+        <form method="post" action="{% url 'initial_inventory' %}"
+              onsubmit="this.querySelector('button[type=submit]').disabled=true;
+                        return confirm('¿Cerrar el periodo contable ahora? Podrás crear uno nuevo enseguida.');">
+          {% csrf_token %}
+          <input type="hidden" name="force_close_period" value="1">
+          <button type="submit" class="btn btn-error btn-sm">
+            Cerrar periodo contable
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="mt-4">
+        <h3 class="font-semibold text-lg mb-2">Importar inventario inicial</h3>
+        <form method="post" enctype="multipart/form-data" class="space-y-4"
+              action="{% url 'initial_inventory' %}">
+          {% csrf_token %}
+          <input type="hidden" name="import_initial" value="1">
+
+          <label class="form-control">
+            <div class="label"><span class="label-text">Archivo Excel (.xlsx)</span></div>
+            <input type="file" name="file" accept=".xlsx" class="file-input file-input-bordered w-full" required>
+          </label>
+
+          <div class="card-actions justify-end">
+            <button class="btn btn-primary" type="submit">Importar inventario inicial</button>
+          </div>
+        </form>
+
+        <div class="divider">Formato esperado</div>
+        <div class="flex justify-center">
+          <table class="table table-zebra table-compact w-auto text-sm border border-base-300">
+            <thead class="bg-base-200">
+              <tr>
+                <th>codigo_producto</th>
+                <th>nombre_producto</th>
+                <th>lote</th>
+                <th>fecha_vencimiento</th>
+                <th>cantidad_de_producto</th>
+                <th>precio</th>
+                <th>unidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>PARA500</td>
+                <td>Paracetamol</td>
+                <td>LoteA1</td>
+                <td>2026-12-31</td>
+                <td>1.50</td>
+                <td>200</td>
+                <td>Mililitro</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

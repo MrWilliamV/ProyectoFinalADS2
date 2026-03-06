@@ -1,0 +1,7 @@
+product.tests module
+====================
+
+.. automodule:: product.tests
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4" xmlns:l.id xmlns:l.id xmlns:l.id xmlns:l.id>Reporte de Inventario</h1>
+
+<form method="get" class="space-y-6 mb-6">
+    <div class="card shadow-sm">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end  p-4  ">
+    <label class="form-control">
+      <div class="label"><span class="label-text font-semibold">Año</span></div>
+      <input type="number" name="year" class="input input-bordered" value="{{ year }}">
+    </label>
+
+    <label class="form-control">
+      <div class="label"><span class="label-text font-semibold">Periodicidad</span></div>
+      <select name="periodicity" class="select select-bordered">
+        <option value="T" {% if periodicity == 'T' %}selected{% endif %}>Trimestral</option>
+        <option value="C" {% if periodicity == 'C' %}selected{% endif %}>Cuatrimestral</option>
+        <option value="A" {% if periodicity == 'A' %}selected{% endif %}>Anual</option>
+      </select>
+    </label>
+
+    <label class="form-control">
+      <div class="label"><span class="label-text font-semibold">Ubicación</span></div>
+      <select name="location" class="select select-bordered">
+        <option value="">Todas</option>
+        {% for l in locations %}
+        <option value="{{ l.id_location }}" {% if l.id_location|stringformat:'s' == selected_location %}selected{% endif %}>{{ l.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="form-control">
+      <div class="label"><span class="label-text font-semibold">Producto</span></div>
+      <select name="product" class="select select-bordered">
+        <option value="">Todos</option>
+        {% for p in products %}
+        <option value="{{ p.id_product }}" {% if p.id_product|stringformat:'s' == selected_product %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div class="md:col-span-4 flex ">
+      <button class="btn btn-primary" type="submit" name="action" value="filter">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+          </svg>
+
+        Aplicar filtros
+      </button>
+    </div>
+  </div>
+
+    </div>
+
+  <div class="card shadow-sm  p-4">
+    <div>
+      <h2 class="text-lg font-semibold mb-1">Descargar reporte</h2>
+      <p class="text-sm opacity-70">Selecciona el formato del archivo y haz clic en "Descargar".</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <select name="export" class="select select-bordered">
+        <option value="">Formato...</option>
+        <option value="csv" {% if export == 'csv' %}selected{% endif %}>CSV</option>
+        <option value="pdf" {% if export == 'pdf' %}selected{% endif %}>PDF</option>
+      </select>
+      <button class="btn btn-outline" type="submit" name="action" value="export">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+          </svg>
+
+        Descargar
+      </button>
+    </div>
+  </div>
+</form>
+
+
+  {% if rows %}
+    <div class="overflow-x-auto">
+      <table class="table table-zebra">
+        <thead>
+          <tr>
+            <th>Periodo</th>
+            <th>Código Producto</th>
+            <th>Producto</th>
+            <th>Ubicación</th>
+            <th>
+
+                <div class="flex items-center justify-center gap-1">
+                    <span class="tooltip tooltip-bottom" data-tip="Existencia acumulada antes de iniciar el periodo">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                    </span>
+
+                Saldo Inicial
+                </div>
+               </th>
+            <th>
+                <div class=" flex items-center justify-center gap-1">
+                    <span class="tooltip tooltip-bottom" data-tip="Total de unidades que ingresaron durante el periodo.">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                    </span>
+                    Entradas
+                </div>
+            </th>
+            <th>
+                <div class=" flex items-center justify-center gap-1">
+                    <span class="tooltip tooltip-bottom" data-tip="Total de unidades que salieron durante el periodo.">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                    </span>
+                    Salidas
+                </div>
+            </th>
+            <th>
+                <div class=" flex items-center justify-center gap-1">
+                    <span class="tooltip tooltip-bottom" data-tip="Crecimiento o reducción del stock: Entradas - Salidas">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                    </span>
+                    Neto
+                </div>
+            </th>
+            <th>
+                <div class=" flex items-center justify-center gap-1">
+                    <span class="tooltip tooltip-bottom" data-tip="Existencia total al cierre del periodo: Saldo inicial + Neto">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                    </span>
+                    Saldo Final
+                </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.period }}</td>
+            <td>{{ r.product_code }}</td>
+            <td>{{ r.product_name }}</td>
+            <td>{{ r.location_name }}</td>
+            <td class="text-center">{{ r.saldo_inicial|floatformat:2 }}</td>
+            <td class="text-center">{{ r.entradas|floatformat:2 }}</td>
+            <td class="text-center">{{ r.salidas|floatformat:2 }}</td>
+            <td class="text-center">{{ r.neto|floatformat:2 }}</td>
+            <td class="text-center">{{ r.saldo_final|floatformat:2 }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert">No hay datos para los filtros seleccionados.</div>
+  {% endif %}
+{% endblock %}

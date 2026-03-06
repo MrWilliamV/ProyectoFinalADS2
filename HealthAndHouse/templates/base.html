@@ -1,0 +1,32 @@
+{% load static %}
+<html lang="es" data-theme="light" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Dashboard{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
+</head>
+<body class="h-dvh overflow-hidden">
+  <div class="drawer lg:drawer-open" id="main-drawer">
+  <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" />
+
+  <!-- content -->
+  <div class="drawer-content flex flex-col">
+    {% include 'navbar.html' %}
+    <main class="p-4">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="drawer-side is-drawer-close:overflow-visible">
+    <label for="sidebar-toggle" aria-label="close sidebar" class="drawer-overlay"></label>
+
+    <div class="is-drawer-close:w-14 is-drawer-open:w-80 bg-base-200 flex flex-col min-h-full transition-all duration-300">
+      {% include 'sidebar.html' %}
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

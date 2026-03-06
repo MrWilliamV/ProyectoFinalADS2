@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Reporte de Caja</h1>
+
+<form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 items-end">
+    <label class="form-control">
+        <div class="label"><span class="label-text">Fecha inicio</span></div>
+        <input type="date" name="start_date" value="{{ start_date }}" class="input input-bordered"/>
+    </label>
+
+    <label class="form-control">
+        <div class="label"><span class="label-text">Fecha fin</span></div>
+        <input type="date" name="end_date" value="{{ end_date }}" class="input input-bordered"/>
+    </label>
+
+<label class="form-control">
+  <div class="label"><span class="label-text">Cajero activo</span></div>
+  <select name="cashier" class="select select-bordered">
+    <option value="">Todos</option>
+    {% for c in cashiers %}
+      <option value="{{ c.id }}" {% if cashier_selected|default:'' == c.id|stringformat:"s" %}selected{% endif %}>
+        {% if c.get_full_name %}{{ c.get_full_name }}{% else %}{{ c.username }}{% endif %}
+      </option>
+    {% endfor %}
+  </select>
+</label>
+
+
+
+    <div class="md:col-span-4 flex gap-2">
+        <button class="btn btn-primary" type="submit">Aplicar filtros</button>
+        <a class="btn" href="{% url 'cash_report' %}">Limpiar</a>
+        <a class="btn btn-outline"
+           href="{% url 'cash_report' %}?{% if qs_params %}{{ qs_params }}&{% endif %}export=csv">Exportar CSV</a>
+    </div>
+</form>
+
+<!-- Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+    <div class="stat shadow rounded-2xl">
+        <div class="stat-title">Total de Ventas</div>
+        <div class="stat-value">Q {{ agg_total_sales }}</div>
+    </div>
+    <div class="stat shadow rounded-2xl">
+        <div class="stat-title">Cantidad total de ventas</div>
+        <div class="stat-value"> {{ agg_sales_count }}</div>
+        </div>
+</div>
+
+<p class="mb-4 text-sm opacity-80">Sesiones encontradas: <strong>{{ session_count }}</strong></p>
+
+<!-- Results -->
+<div class="scroll-x">
+  <table class="table table-zebra w-full">
+    <thead>
+      <tr>
+        <th>Apertura</th>
+        <th>Cierre</th>
+        <th>Cajero</th>
+        <th class="text-right">Cant. Ventas</th>
+        <th class="text-right">Apertura (Inicial)</th>
+        <th class="text-right">Total Ventas</th>
+        <th class="text-right">Total Egresos</th>
+        <th class="text-right">Diferencia</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in page_obj.object_list %}
+        <tr>
+          <td>{{ s.opened_at|date:"Y-m-d H:i" }}</td>
+          <td>{% if s.closed_at %}{{ s.closed_at|date:"Y-m-d H:i" }}{% endif %}</td>
+          <td>
+            {% if s.cashier %}
+              {% if s.cashier.get_full_name %}{{ s.cashier.get_full_name }}{% else %}{{ s.cashier.username }}{% endif %}
+            {% endif %}
+          </td>
+          <td class="text-right">{{ s.sales_count|default:"0" }}</td>
+          <td class="text-right">Q {{ s.opening_amount|default:"0.00" }}</td>
+          <td class="text-right">Q {{ s.total_sales|default:"0.00" }}</td>
+          <td class="text-right">Q {{ s.total_expense|default:"0.00" }}</td>
+          <td class="text-right font-semibold">
+            Q {{ s.total_difference|default:"0.00" }}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="8" class="text-center">No hay resultados con los filtros aplicados.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="join mt-4">
+    {% if page_obj.has_previous %}
+    <a class="join-item btn" href="?page=1{% if qs_params %}&{{ qs_params }}{% endif %}">« Primero</a>
+    <a class="join-item btn"
+       href="?page={{ page_obj.previous_page_number }}{% if qs_params %}&{{ qs_params }}{% endif %}">‹ Anterior</a>
+    {% else %}
+    <button class="join-item btn btn-disabled">« Primero</button>
+    <button class="join-item btn btn-disabled">‹ Anterior</button>
+    {% endif %}
+
+    <button class="join-item btn btn-ghost">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</button>
+
+    {% if page_obj.has_next %}
+    <a class="join-item btn" href="?page={{ page_obj.next_page_number }}{% if qs_params %}&{{ qs_params }}{% endif %}">Siguiente
+        ›</a>
+    <a class="join-item btn"
+       href="?page={{ page_obj.paginator.num_pages }}{% if qs_params %}&{{ qs_params }}{% endif %}">Último »</a>
+    {% else %}
+    <button class="join-item btn btn-disabled">Siguiente ›</button>
+    <button class="join-item btn btn-disabled">Último »</button>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

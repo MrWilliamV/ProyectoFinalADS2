@@ -1,0 +1,330 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sale.views &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">sale.views</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para sale.views</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">BytesIO</span>  <span class="c1"># (puede quedar si lo usas en otro lado)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">login_required</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib</span><span class="w"> </span><span class="kn">import</span> <span class="n">messages</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.http</span><span class="w"> </span><span class="kn">import</span> <span class="n">HttpResponse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.shortcuts</span><span class="w"> </span><span class="kn">import</span> <span class="n">render</span><span class="p">,</span> <span class="n">redirect</span><span class="p">,</span> <span class="n">get_object_or_404</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.views.decorators.http</span><span class="w"> </span><span class="kn">import</span> <span class="n">require_POST</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HealthAndHouse.auth_rol</span><span class="w"> </span><span class="kn">import</span> <span class="n">has_role</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">product.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Product</span>
+
+<span class="c1"># === Importa SOLO lógica de negocio desde services.py ===</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.services</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_store_location</span><span class="p">,</span>
+    <span class="n">find_product_by_code</span><span class="p">,</span>
+    <span class="n">available_stock_nonexpired</span><span class="p">,</span>
+    <span class="n">price_from_inventory</span><span class="p">,</span>
+    <span class="n">add_or_increment_cart_item</span><span class="p">,</span>
+    <span class="n">increment_cart_item</span><span class="p">,</span>
+    <span class="n">decrement_cart_item</span><span class="p">,</span>
+    <span class="n">remove_cart_item</span><span class="p">,</span>
+    <span class="n">current_qty_in_cart</span><span class="p">,</span>
+    <span class="n">make_sale_transaction</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="nd">@login_required</span>
+<span class="nd">@has_role</span><span class="p">(</span><span class="s2">&quot;ADMINISTRADOR&quot;</span><span class="p">,</span> <span class="s2">&quot;VENDEDOR&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sales</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Shows the POS page with the current cart and total.</span>
+
+<span class="sd">    :param request: HttpRequest object.</span>
+<span class="sd">    :return: Rendered &#39;sale.html&#39; .</span>
+<span class="sd">    :raises:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cart</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cart&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subtotal&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s1">&#39;sale.html&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;cart&quot;</span><span class="p">:</span> <span class="n">cart</span><span class="p">,</span> <span class="s2">&quot;total&quot;</span><span class="p">:</span> <span class="n">total</span><span class="p">})</span>
+
+
+<div class="viewcode-block" id="add_product_by_barcode">
+<a class="viewcode-back" href="../../api/sale/sale.views.html#sale.views.add_product_by_barcode">[documentos]</a>
+<span class="nd">@require_POST</span>
+<span class="nd">@login_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_product_by_barcode</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adds a product to the cart by reading POST fields used in your form.</span>
+
+<span class="sd">    :param request: HttpRequest with POST</span>
+<span class="sd">    :return: Redirect to sales with status message.</span>
+<span class="sd">    :raises: ValueError  if validations fail.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id_product&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">code</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;Ingresa un código o código de barras.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">qty_to_add</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">qty_to_add</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">qty_to_add</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;La cantidad debe ser mayor que 0.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span>
+
+    <span class="n">cart</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cart&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+    <span class="n">product</span> <span class="o">=</span> <span class="n">find_product_by_code</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">product</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;No se encontró el producto para &#39;</span><span class="si">{</span><span class="n">code</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span>
+
+    <span class="n">store</span> <span class="o">=</span> <span class="n">get_store_location</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">store</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;No se encontró la ubicación de Tienda (ST).&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span>
+
+    <span class="n">disponible</span> <span class="o">=</span> <span class="n">available_stock_nonexpired</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">store</span><span class="p">)</span>
+    <span class="n">current_qty</span> <span class="o">=</span> <span class="n">current_qty_in_cart</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">product</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">current_qty</span> <span class="o">+</span> <span class="n">qty_to_add</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">disponible</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Stock disponible en Tienda: </span><span class="si">{</span><span class="n">disponible</span><span class="si">}</span><span class="s2">. No se puede agregar más.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span>
+
+    <span class="n">price</span> <span class="o">=</span> <span class="n">price_from_inventory</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">store</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="mf">0.00</span><span class="p">)</span>
+
+    <span class="n">add_or_increment_cart_item</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">product</span><span class="p">,</span> <span class="n">qty_to_add</span><span class="p">,</span> <span class="n">price</span><span class="p">)</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">[</span><span class="s2">&quot;cart&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cart</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="add_qty">
+<a class="viewcode-back" href="../../api/sale/sale.views.html#sale.views.add_qty">[documentos]</a>
+<span class="nd">@require_POST</span>
+<span class="nd">@login_required</span><span class="p">(</span><span class="n">login_url</span><span class="o">=</span><span class="s1">&#39;login&#39;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_qty</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">id_product</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Increases by one the quantity of a product already present in the cart.</span>
+
+<span class="sd">    :param request: HttpRequest POST only).</span>
+<span class="sd">    :param id_product: Product PK to increment in the cart.</span>
+<span class="sd">    :return: Redirect to &#39;sales&#39; with a status message.</span>
+<span class="sd">    :raises: ValueError (messaged) if stock is insufficient.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cart</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cart&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">get_object_or_404</span><span class="p">(</span><span class="n">Product</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="n">id_product</span><span class="p">)</span>
+
+    <span class="n">store</span> <span class="o">=</span> <span class="n">get_store_location</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">store</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;No se encontró la ubicación de Tienda (ST).&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span>
+
+    <span class="n">disponible</span> <span class="o">=</span> <span class="n">available_stock_nonexpired</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">store</span><span class="p">)</span>
+
+    <span class="n">current_qty</span> <span class="o">=</span> <span class="n">current_qty_in_cart</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">product</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">current_qty</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">disponible</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Stock disponible en Tienda: </span><span class="si">{</span><span class="n">disponible</span><span class="si">}</span><span class="s2">. No se puede agregar más.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span>
+
+    <span class="n">increment_cart_item</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">id_product</span><span class="o">=</span><span class="n">id_product</span><span class="p">)</span>
+
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">[</span><span class="s2">&quot;cart&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cart</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="dec_qty">
+<a class="viewcode-back" href="../../api/sale/sale.views.html#sale.views.dec_qty">[documentos]</a>
+<span class="nd">@require_POST</span>
+<span class="nd">@login_required</span><span class="p">(</span><span class="n">login_url</span><span class="o">=</span><span class="s1">&#39;login&#39;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dec_qty</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">id_product</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decreases by one the quantity of a product; removes it if it reaches zero.</span>
+
+<span class="sd">    :param request: HttpRequest (POST only).</span>
+<span class="sd">    :param id_product: Product PK to decrement in the cart.</span>
+<span class="sd">    :return: Redirect to &#39;sales&#39; with info message.</span>
+<span class="sd">    :raises:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cart</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cart&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">decrement_cart_item</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">id_product</span><span class="o">=</span><span class="n">id_product</span><span class="p">)</span>
+
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">[</span><span class="s2">&quot;cart&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cart</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="remove_product_from_cart">
+<a class="viewcode-back" href="../../api/sale/sale.views.html#sale.views.remove_product_from_cart">[documentos]</a>
+<span class="nd">@require_POST</span>
+<span class="nd">@login_required</span><span class="p">(</span><span class="n">login_url</span><span class="o">=</span><span class="s1">&#39;login&#39;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_product_from_cart</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">id_product</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Removes a product from the cart regardless of current quantity.</span>
+
+<span class="sd">    :param request: HttpRequest (POST only).</span>
+<span class="sd">    :param id_product: Product PK to remove from the cart.</span>
+<span class="sd">    :return: Redirect to &#39;sales&#39; with info message.</span>
+<span class="sd">    :raises:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cart</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cart&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">remove_cart_item</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">id_product</span><span class="o">=</span><span class="n">id_product</span><span class="p">)</span>
+
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">[</span><span class="s2">&quot;cart&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cart</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;sales&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="make_a_sale">
+<a class="viewcode-back" href="../../api/sale/sale.views.html#sale.views.make_a_sale">[documentos]</a>
+<span class="nd">@require_POST</span>
+<span class="nd">@login_required</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_a_sale</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Completes the sale, delegating all business logic to services:</span>
+<span class="sd">    - Validates active inventory period and open cash session.</span>
+<span class="sd">    - Verifies non-expired stock per item and consumes lots/inventory.</span>
+<span class="sd">    - Registers cash movements.</span>
+<span class="sd">    - Generates PDF bytes for the invoice.</span>
+
+<span class="sd">    :param request: HttpRequest</span>
+<span class="sd">    :return: HttpResponse PDF download .</span>
+<span class="sd">    :raises: ValueError for validation/stock errors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cart</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cart&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;No hay productos en el carrito.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;sales&quot;</span><span class="p">)</span>
+
+    <span class="n">store</span> <span class="o">=</span> <span class="n">get_store_location</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">store</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;No se encontró la ubicación de Tienda (ST).&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;sales&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Copia para el PDF se hace dentro del service; aquí solo pasamos el carrito.</span>
+    <span class="n">raw_cash</span> <span class="o">=</span> <span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cash_received&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pdf_bytes</span><span class="p">,</span> <span class="n">invoice_number</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">change</span> <span class="o">=</span> <span class="n">make_sale_transaction</span><span class="p">(</span>
+            <span class="n">cart</span><span class="o">=</span><span class="n">cart</span><span class="p">,</span>
+            <span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">,</span>
+            <span class="n">cash_received_raw</span><span class="o">=</span><span class="n">raw_cash</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;No se pudo completar la venta: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;sales&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;No se pudo completar la venta: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s2">&quot;sales&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Limpiar carrito después de una venta exitosa</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">[</span><span class="s2">&quot;cart&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># Devolver el PDF con el mismo nombre que ya usabas</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;application/pdf&quot;</span><span class="p">)</span>
+    <span class="n">response</span><span class="p">[</span><span class="s2">&quot;Content-Disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;attachment; filename=&quot;factura_</span><span class="si">{</span><span class="n">invoice_number</span><span class="si">}</span><span class="s1">.pdf&quot;&#39;</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pdf_bytes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">response</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

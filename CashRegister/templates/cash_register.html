@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Caja</h1>
+
+{% if messages %}
+  <div class="space-y-2 mb-3">
+    {% for m in messages %}
+      <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+        <span>{{ m }}</span>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if session %}
+  <!-- Cash register open -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    <div class="card bg-base-100 shadow-sm lg:col-span-2">
+      <div class="card-body">
+        <h2 class="card-title">Estado actual</h2>
+        <p><b>Ubicación:</b> {{ session.location.name }} ({{ session.location.code }})</p>
+        <p><b>Bloque:</b> {{ session.get_block_display }}</p>
+        <p><b>Apertura:</b> Q {{ session.opening_amount }}</p>
+        <p><b>Efectivo esperado:</b> Q {{ expected }}</p>
+
+        <div class="divider my-2">Movimientos recientes</div>
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr><th>Fecha</th><th>Tipo</th><th class="text-right">Monto (Q)</th><th>Descripción</th></tr>
+            </thead>
+            <tbody>
+              {% for mv in movements %}
+              <tr>
+                <td>{{ mv.created_at|date:"Y-m-d H:i" }}</td>
+                <td>{{ mv.mtype }}</td>
+                <td class="text-right">
+                  {% if mv.mtype in 'RETIRO,COMPRA EFECTIVO' %}-{% endif %}
+                  {{ mv.amount }}
+                </td>
+                <td>{{ mv.description }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="opacity-60 italic">Sin movimientos aún.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title">Acciones</h2>
+
+        <form method="post" class="mb-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="deposit">
+          <label class="form-control">
+            <div class="label"><span class="label-text">Depósito (Q)</span></div>
+            <input name="amount" type="number" max="9999999" maxlength="9" step="0.01" min="0.01" class="input input-bordered w-full" required>
+          </label>
+          <label class="form-control">
+            <div class="label"><span class="label-text">Descripción</span></div>
+            <input name="description" type="text" maxlength="255" class="input input-bordered w-full" placeholder="Opcional">
+          </label>
+          <div class="card-actions justify-end mt-2">
+            <button class="btn btn-primary" type="submit">Registrar depósito</button>
+          </div>
+        </form>
+
+        <form method="post" class="mb-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="withdraw">
+          <label class="form-control">
+            <div class="label"><span class="label-text">Retiro (Q)</span></div>
+            <input name="amount" type="number" maxlength="9" max="9999999" step="0.01" min="0.01" class="input input-bordered w-full" required>
+          </label>
+          <label class="form-control">
+            <div class="label"><span class="label-text">Descripción</span></div>
+            <input name="description" type="text" maxlength="255" class="input input-bordered w-full" placeholder="Opcional">
+          </label>
+          <div class="card-actions justify-end mt-2">
+            <button class="btn btn-warning" type="submit">Registrar retiro</button>
+          </div>
+        </form>
+
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="close">
+          <label class="form-control">
+            <div class="label"><span class="label-text">Efectivo contado (Q)</span></div>
+            <input name="counted_cash" type="number" maxlength="9" max="9999999" step="0.01" min="0" class="input input-bordered w-full" required>
+          </label>
+          <div class="card-actions justify-end mt-2">
+            <button class="btn btn-error" type="submit">Cerrar caja</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+{% else %}
+<!-- No box open: show OPENING -->
+<div class="card bg-base-100 shadow-sm">
+    <div class="card-body">
+      <h2 class="card-title">Abrir caja</h2>
+      <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="open">
+
+        <label class="form-control">
+          <div class="label"><span class="label-text">Bloque</span></div>
+          <select name="block" class="select select-bordered w-full" required>
+            <option value="AM">08:00–12:00</option>
+            <option value="PM">13:00–18:00</option>
+          </select>
+        </label>
+
+        <label class="form-control">
+          <div class="label"><span class="label-text">Monto de apertura (Q)</span></div>
+          <input name="opening_amount" type="number" step="0.01" min="0" value="1000.00"
+                 class="input input-bordered w-full" required>
+          <div class="label"><span class="label-text-alt opacity-70">Por defecto: Q 1000.00</span></div>
+        </label>
+
+        <div class="md:col-span-2 card-actions justify-end">
+          <button class="btn btn-primary" type="submit">Abrir caja</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

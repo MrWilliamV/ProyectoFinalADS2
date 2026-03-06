@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-bold">Proveedores</h1>
+            <p class="text-sm opacity-70">Administra tus proveedores.</p>
+        </div>
+        {% if perms.suppliers.add_supplier %}
+        <a href="{% url 'create_supplier' %}">
+            <button class="btn btn-circle btn-primary fixed bottom-4 right-4 w-20 h-20">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                     stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+
+            </button>
+        </a>
+        {% endif %}
+    </div>
+
+    <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="md:col-span-3">
+            <p class="text-sm font-semibold mb-1">Buscar proveedor</p>
+            <input type="text" name="q" value="{{ request.GET.q }}"
+                   placeholder="Buscar (nombre, correo, tel, ciudad, país)"
+                   class="input input-bordered w-full"/>
+        </div>
+
+        <div class="md:col-span-2">
+            <p class="text-sm font-semibold mb-1">Estado</p>
+            <select name="status" class="select select-bordered w-full">
+                <option value="" {% if not request.GET.status and not request.GET.only_active %}selected{% endif %}>
+                    Todos
+                </option>
+                <option value="active">
+                    Solo activos
+                </option>
+                <option value="inactive">
+                    Solo inactivos
+                </option>
+            </select>
+        </div>
+
+
+        <button class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                 stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"/>
+            </svg>
+
+            <span> Filtrar</span>
+        </button>
+        <a class="btn btn-outline" href="{% url 'list_suppliers' %}">Limpiar</a>
+    </form>
+
+
+    <div class="overflow-x-auto shadow-sm card">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th>Correo</th>
+                <th>Ciudad/País</th>
+                <th>Estado</th>
+                <th class="text-right">Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for s in suppliers %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.phone|default:"—" }}</td>
+                <td>{{ s.email|default:"—" }}</td>
+                <td>{{ s.city|default:"—" }} / {{ s.country|default:"—" }}</td>
+                <td>
+                    {% if s.active %}
+                    <span class="badge badge-success">Activo</span>
+                    {% else %}
+                    <span class="badge badge-ghost">Inactivo</span>
+                    {% endif %}
+                </td>
+                <td class="text-right space-x-1">
+                    <a class="btn btn-xs" href="{% url 'update_supplier' s.pk %}">Editar</a>
+
+                    <button class="btn btn-xs btn-outline {% if s.active %}btn-error{% else %}btn-success{% endif %}"
+                            onclick="document.getElementById('toggle_modal_{{ s.id }}').showModal()">
+                        {% if s.active %}Desactivar{% else %}Activar{% endif %}
+                    </button>
+
+                    <dialog id="toggle_modal_{{ s.id }}" class="modal modal-bottom sm:modal-middle">
+                        <div class="modal-box">
+                            <h3 class="text-lg font-bold">
+                                {% if s.active %}Desactivar proveedor{% else %}Activar proveedor{% endif %}
+                            </h3>
+                            <p class="py-4">
+                                ¿Seguro que deseas
+                                {% if s.active %}<b>desactivar</b>{% else %}<b>activar</b>{% endif %}
+                                a <b>{{ s.name }}</b>?
+                            </p>
+                            <div class="modal-action">
+                                <form method="dialog">
+                                    <button class="btn">Cancelar</button>
+                                </form>
+                                <form method="post" action="{% url 'active_supplier' s.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="btn {% if s.active %}btn-error{% else %}btn-success{% endif %}">
+                                        Sí, {% if s.active %}desactivar{% else %}activar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </dialog>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="join">
+        {% if page_obj.has_previous %}
+        <a class="join-item btn"
+           href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}&only_active={{ request.GET.only_active }}">«</a>
+        {% endif %}
+        <button class="join-item btn">Página {{ page_obj.number }} / {{ paginator.num_pages }}</button>
+        {% if page_obj.has_next %}
+        <a class="join-item btn"
+           href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}&only_active={{ request.GET.only_active }}">»</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

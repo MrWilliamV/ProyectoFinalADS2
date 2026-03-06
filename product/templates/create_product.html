@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block content%}
+
+<div class="px-4 md:px-6 lg:px-8 py-6">
+  <div class="mx-auto max-w-6xl">
+
+    {% with role=request.user.groups.all.0 %}
+      {% if not role %}
+        <div class="card bg-base-100 border border-base-200 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title">Sin permisos</h2>
+            <p class="opacity-80">No tienes permisos para crear productos. Si crees que esto es un error, contacta al administrador.</p>
+            <div class="card-actions justify-end">
+              <a href="{% url 'product_list' %}" class="btn btn-ghost">Volver al catálogo</a>
+            </div>
+          </div>
+        </div>
+      {% elif role.name == "ADMINISTRADOR" or role.name == "JEFE_ALMACEN" %}
+
+        {% if messages %}
+        <div class="space-y-2 mb-4">
+          {% for m in messages %}
+            <div class="alert
+              {% if 'error' in m.tags %}alert-error{% elif 'success' in m.tags %}alert-success{% elif 'info' in m.tags %}alert-info{% else %}alert-warning{% endif %}">
+              <span>{{ m }}</span>
+            </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="mb-4 flex items-center justify-between">
+          <h1 class="text-2xl font-bold">Agregar un nuevo producto</h1>
+        </div>
+
+        <form method="post" action="{% url 'create_product' %}">
+          {% csrf_token %}
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <div class="lg:col-span-7 space-y-6">
+
+              <section class="card bg-base-100 border border-base-200">
+                <div class="card-body">
+                  <h2 class="card-title">Identificación</h2>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Código de barras <span class="text-error">*</span></span></label>
+                      {{ form.id_product }}
+                      {{ form.errors.id_product }}
+                    </div>
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Nombre <span class="text-error">*</span></span></label>
+                      {{ form.name }}
+                    </div>
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Marca</span></label>
+                      {{ form.brand }}
+                    </div>
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Categoría</span></label>
+                      {{ form.category }}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card bg-base-100 border border-base-200">
+                <div class="card-body">
+                  <h2 class="card-title">Detalle</h2>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control md:col-span-2">
+                      <label class="label"><span class="label-text">Descripción</span></label>
+                      {{ form.description }}
+                    </div>
+
+                    <div class="md:col-start-2 space-y-4">
+                      <div class="form-control">
+                        <label class="label"><span class="label-text">Unidad de medida</span></label>
+                        {{ form.measure_unit }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="lg:col-span-5 space-y-6">
+              <section class="card bg-base-100 border border-base-200">
+                <div class="card-body">
+                  <h2 class="card-title">Stock bodega</h2>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h3 class="font-semibold mb-2">Tienda (ST)</h3>
+                      <label class="form-control">
+                        <span class="label-text">Mínimo</span>
+                        {{ form.min_st }}
+                      </label>
+                      <label class="form-control mt-2">
+                        <span class="label-text">Máximo</span>
+                        {{ form.max_st }}
+                      </label>
+                    </div>
+
+                    <div>
+                      <h3 class="font-semibold mb-2">Bodega (WH)</h3>
+                      <label class="form-control">
+                        <span class="label-text">Mínimo</span>
+                        {{ form.min_wh }}
+                      </label>
+                      <label class="form-control mt-2">
+                        <span class="label-text">Máximo</span>
+                        {{ form.max_wh }}
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="divider"></div>
+
+                  <div class="form-control">
+                    <label class="label"><span class="label-text">Estado</span></label>
+                    <label class="label cursor-pointer justify-start gap-3">
+                      {{ form.active }}
+                      <span class="label-text">Activo</span>
+                    </label>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="sticky bottom-0 mt-6 bg-base-100 border-t border-base-200">
+            <div class="mx-auto max-w-6xl px-4 py-3 flex justify-end gap-2">
+              <a href="{% url 'product_list' %}" class="btn btn-ghost">Cancelar</a>
+              <button type="submit" class="btn btn-primary">Guardar</button>
+            </div>
+          </div>
+        </form>
+
+      {% else %}
+        <div class="card bg-base-100 border border-base-200 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title">Sin permisos</h2>
+            <p class="opacity-80">No tienes permisos para crear productos. Si crees que esto es un error, contacta al administrador.</p>
+            <div class="card-actions justify-end">
+              <a href="{% url 'product_list' %}" class="btn btn-ghost">Volver al catálogo</a>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,179 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>reports.forms &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">reports.forms</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para reports.forms</h1><div class="highlight"><pre>
+<span></span><span class="c1"># reports/forms.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django</span><span class="w"> </span><span class="kn">import</span> <span class="n">forms</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">inventory.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Product</span><span class="p">,</span> <span class="n">Location</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span>
+
+
+<div class="viewcode-block" id="Periodicity">
+<a class="viewcode-back" href="../../api/reports/reports.forms.html#reports.forms.Periodicity">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Periodicity</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Defines the available periodicity options for the inventory report.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TRIMESTRAL</span> <span class="o">=</span> <span class="s1">&#39;T&#39;</span>
+    <span class="n">CUATRIMESTRAL</span> <span class="o">=</span> <span class="s1">&#39;C&#39;</span>
+    <span class="n">ANUAL</span> <span class="o">=</span> <span class="s1">&#39;A&#39;</span>
+    <span class="n">CHOICES</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">TRIMESTRAL</span><span class="p">,</span> <span class="s1">&#39;Trimestral&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">CUATRIMESTRAL</span><span class="p">,</span> <span class="s1">&#39;Cuatrimestral&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">ANUAL</span><span class="p">,</span> <span class="s1">&#39;Anual&#39;</span><span class="p">),</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="default_year">
+<a class="viewcode-back" href="../../api/reports/reports.forms.html#reports.forms.default_year">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">default_year</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the current year to pre-fill the &#39;year&#39; field.</span>
+
+<span class="sd">    :return: Current year as integer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">year</span></div>
+
+
+
+<div class="viewcode-block" id="InventoryReportForm">
+<a class="viewcode-back" href="../../api/reports/reports.forms.html#reports.forms.InventoryReportForm">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InventoryReportForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Form for filtering and exporting inventory reports.</span>
+
+<span class="sd">    It allows users to select a year, periodicity, location, product, and</span>
+<span class="sd">    export format. Used in the &#39;inventory_report.html&#39; template.</span>
+
+<span class="sd">    Fields:</span>
+<span class="sd">        year (IntegerField): Year of the report (defaults to current year).</span>
+<span class="sd">        periodicity (ChoiceField): Time interval to group results (quarterly, four-month, or yearly).</span>
+<span class="sd">        location (ModelChoiceField): Optional location filter (warehouse or store).</span>
+<span class="sd">        product (ModelChoiceField): Optional product filter.</span>
+<span class="sd">        export (ChoiceField): Export format (CSV or PDF).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">year</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Año&quot;</span><span class="p">,</span> <span class="n">min_value</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="mi">2100</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">default_year</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">NumberInput</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;input input-bordered w-32&#39;</span><span class="p">})</span>
+    <span class="p">)</span>
+
+    <span class="n">periodicity</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ChoiceField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Periodicidad&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">Periodicity</span><span class="o">.</span><span class="n">CHOICES</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">Periodicity</span><span class="o">.</span><span class="n">TRIMESTRAL</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Select</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;select select-bordered&#39;</span><span class="p">})</span>
+    <span class="p">)</span>
+
+    <span class="n">location</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ModelChoiceField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Ubicación&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Select</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;select select-bordered&#39;</span><span class="p">})</span>
+    <span class="p">)</span>
+
+    <span class="n">product</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ModelChoiceField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Producto&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Select</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;select select-bordered w-full&#39;</span><span class="p">})</span>
+    <span class="p">)</span>
+
+    <span class="n">export</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ChoiceField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Exportar&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="s1">&#39;CSV&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;pdf&#39;</span><span class="p">,</span> <span class="s1">&#39;PDF&#39;</span><span class="p">)],</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Select</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;select select-bordered&#39;</span><span class="p">})</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

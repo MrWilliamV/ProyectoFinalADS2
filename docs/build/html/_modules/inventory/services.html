@@ -1,0 +1,418 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>inventory.services &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">inventory.services</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para inventory.services</h1><div class="highlight"><pre>
+<span></span><span class="c1"># inventory/services.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">transaction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Coalesce</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sum</span><span class="p">,</span> <span class="n">Subquery</span><span class="p">,</span> <span class="n">OuterRef</span><span class="p">,</span> <span class="n">Value</span><span class="p">,</span> <span class="n">F</span><span class="p">,</span> <span class="n">DecimalField</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">InventoryConfig</span><span class="p">,</span> <span class="n">Inventory</span><span class="p">,</span> <span class="n">LotStock</span><span class="p">,</span> <span class="n">ProductLot</span><span class="p">,</span>
+    <span class="n">InventoryPeriodSnapshot</span><span class="p">,</span> <span class="n">InventoryPeriodSnapshotItem</span><span class="p">,</span> <span class="n">InventoryMovement</span><span class="p">,</span> <span class="n">TIPO_MOVIMIENTO_INICIAL</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="cerrar_periodo_snapshot">
+<a class="viewcode-back" href="../../api/inventory/inventory.services.html#inventory.services.cerrar_periodo_snapshot">[documentos]</a>
+<span class="nd">@transaction</span><span class="o">.</span><span class="n">atomic</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">cerrar_periodo_snapshot</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">cfg_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs the real accounting closure of the active inventory period.</span>
+
+<span class="sd">    :param user: User instance performing the closure.</span>
+<span class="sd">    :param cfg_id: ID of the active InventoryConfig to close.</span>
+<span class="sd">    :return: dict containing:</span>
+<span class="sd">             - snapshot_id (int)</span>
+<span class="sd">             - items (int): number of items in snapshot</span>
+<span class="sd">             - cutoff_ts (datetime): closure timestamp</span>
+<span class="sd">             - status (&#39;ok&#39;)</span>
+<span class="sd">    :raises: InventoryConfig.DoesNotExist if the active config does not exist.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">cfg_id</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">tz</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">get_current_timezone</span><span class="p">()</span>
+    <span class="n">cutoff_dt</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">fecha_corte</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">fecha_corte</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">fecha_corte</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+        <span class="mi">23</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">tz</span>
+    <span class="p">)</span>
+
+    <span class="n">snap</span> <span class="o">=</span> <span class="n">InventoryPeriodSnapshot</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">periodo</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span>
+        <span class="n">cutoff_ts</span><span class="o">=</span><span class="n">cutoff_dt</span><span class="p">,</span>
+        <span class="n">creado_por</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">ZERO_QTY</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span> <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+    <span class="n">ZERO_VAL</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span> <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+
+    <span class="n">movs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;product_id&quot;</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">,</span> <span class="s2">&quot;lot_id&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+            <span class="n">entradas</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;entrada_cantidad&quot;</span><span class="p">),</span> <span class="n">ZERO_QTY</span><span class="p">),</span>
+            <span class="n">salidas</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;salida_cantidad&quot;</span><span class="p">),</span> <span class="n">ZERO_QTY</span><span class="p">),</span>
+            <span class="n">entrada_valor</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;entrada_valor&quot;</span><span class="p">),</span> <span class="n">ZERO_VAL</span><span class="p">),</span>
+            <span class="n">salida_valor</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;salida_valor&quot;</span><span class="p">),</span> <span class="n">ZERO_VAL</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+            <span class="n">qty</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;entradas&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;salidas&quot;</span><span class="p">),</span>
+            <span class="n">total</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;entrada_valor&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;salida_valor&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">qty__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;product_id&quot;</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">,</span> <span class="s2">&quot;lot_id&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">movs</span><span class="p">:</span>
+        <span class="n">qty</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;total&quot;</span><span class="p">]</span>
+        <span class="n">unit_cost</span> <span class="o">=</span> <span class="p">(</span><span class="n">total</span> <span class="o">/</span> <span class="n">qty</span><span class="p">)</span> <span class="k">if</span> <span class="n">qty</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">)</span>
+
+        <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">InventoryPeriodSnapshotItem</span><span class="p">(</span>
+            <span class="n">snapshot</span><span class="o">=</span><span class="n">snap</span><span class="p">,</span>
+            <span class="n">id_product_id</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;product_id&quot;</span><span class="p">],</span>
+            <span class="n">id_location_id</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;location_id&quot;</span><span class="p">],</span>
+            <span class="n">id_lot_id</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;lot_id&quot;</span><span class="p">],</span>
+            <span class="n">qty</span><span class="o">=</span><span class="n">qty</span><span class="p">,</span>
+            <span class="n">unit_cost</span><span class="o">=</span><span class="n">unit_cost</span><span class="p">,</span>
+            <span class="n">total_cost</span><span class="o">=</span><span class="n">total</span><span class="p">,</span>
+        <span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">items</span><span class="p">:</span>
+        <span class="n">InventoryPeriodSnapshotItem</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+
+    <span class="n">cfg</span><span class="o">.</span><span class="n">is_active</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;is_active&quot;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;snapshot_id&quot;</span><span class="p">:</span> <span class="n">snap</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">),</span>
+        <span class="s2">&quot;cutoff_ts&quot;</span><span class="p">:</span> <span class="n">snap</span><span class="o">.</span><span class="n">cutoff_ts</span><span class="p">,</span>
+        <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;ok&quot;</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_inicio_por_fecha_corte</span><span class="p">(</span><span class="n">fecha_corte</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determines the start date for a new period based on the cutoff date.</span>
+
+<span class="sd">    :param fecha_corte: datetime.date representing the cutoff date.</span>
+<span class="sd">    :return: datetime.datetime start timestamp for the new period.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tz</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">get_current_timezone</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">fecha_corte</span><span class="o">.</span><span class="n">month</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">timezone</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="n">fecha_corte</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">tz</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">timezone</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="n">fecha_corte</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">tz</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="aplicar_snapshot_al_periodo_activo">
+<a class="viewcode-back" href="../../api/inventory/inventory.services.html#inventory.services.aplicar_snapshot_al_periodo_activo">[documentos]</a>
+<span class="nd">@transaction</span><span class="o">.</span><span class="n">atomic</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">aplicar_snapshot_al_periodo_activo</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">snapshot_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Applies an existing snapshot as the opening balance for the active period.</span>
+
+<span class="sd">    :param user: User instance applying the snapshot.</span>
+<span class="sd">    :param snapshot_id: ID of the InventoryPeriodSnapshot to apply.</span>
+<span class="sd">    :return: dict with counts:</span>
+<span class="sd">             - ini_movements: number of created INI movements</span>
+<span class="sd">             - lot_items: number of lots reconstructed</span>
+<span class="sd">             - products: number of product-location combinations</span>
+<span class="sd">             - cleaned_lotstock: lots deleted from previous period</span>
+<span class="sd">             - zeroed_inventory: inventories reset to zero</span>
+<span class="sd">    :raises: InventoryConfig.DoesNotExist or InventoryPeriodSnapshot.DoesNotExist</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">periodo</span> <span class="o">=</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">start_ts</span> <span class="o">=</span> <span class="n">_inicio_por_fecha_corte</span><span class="p">(</span><span class="n">periodo</span><span class="o">.</span><span class="n">fecha_corte</span><span class="p">)</span>
+    <span class="n">snap</span> <span class="o">=</span> <span class="n">InventoryPeriodSnapshot</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">snapshot_id</span><span class="p">)</span>
+    <span class="n">now</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+
+    <span class="n">bulk_movs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">InventoryPeriodSnapshotItem</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">snapshot</span><span class="o">=</span><span class="n">snap</span><span class="p">)</span><span class="o">.</span><span class="n">iterator</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="n">bulk_movs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">InventoryMovement</span><span class="p">(</span>
+            <span class="n">fecha</span><span class="o">=</span><span class="n">start_ts</span><span class="p">,</span>
+            <span class="n">tipo_movimiento</span><span class="o">=</span><span class="n">TIPO_MOVIMIENTO_INICIAL</span><span class="p">,</span>
+            <span class="n">descripcion</span><span class="o">=</span><span class="s2">&quot;Saldo inicial desde snapshot de cierre&quot;</span><span class="p">,</span>
+            <span class="n">valor_unitario</span><span class="o">=</span><span class="p">(</span><span class="n">it</span><span class="o">.</span><span class="n">unit_cost</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)),</span>
+            <span class="n">entrada_cantidad</span><span class="o">=</span><span class="n">it</span><span class="o">.</span><span class="n">qty</span><span class="p">,</span>
+            <span class="n">entrada_valor</span><span class="o">=</span><span class="n">it</span><span class="o">.</span><span class="n">total_cost</span><span class="p">,</span>
+            <span class="n">salida_cantidad</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span>
+            <span class="n">salida_valor</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span>
+            <span class="n">saldo_cantidad</span><span class="o">=</span><span class="n">it</span><span class="o">.</span><span class="n">qty</span><span class="p">,</span>
+            <span class="n">saldo_valor</span><span class="o">=</span><span class="n">it</span><span class="o">.</span><span class="n">total_cost</span><span class="p">,</span>
+            <span class="n">product_id</span><span class="o">=</span><span class="n">it</span><span class="o">.</span><span class="n">id_product_id</span><span class="p">,</span>
+            <span class="n">location_id</span><span class="o">=</span><span class="n">it</span><span class="o">.</span><span class="n">id_location_id</span><span class="p">,</span>
+            <span class="n">lot_id</span><span class="o">=</span><span class="n">it</span><span class="o">.</span><span class="n">id_lot_id</span><span class="p">,</span>
+            <span class="n">period</span><span class="o">=</span><span class="n">periodo</span><span class="p">,</span>
+        <span class="p">))</span>
+    <span class="k">if</span> <span class="n">bulk_movs</span><span class="p">:</span>
+        <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span><span class="n">bulk_movs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+
+    <span class="n">qty_by_lot_loc</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">))</span>
+    <span class="n">lotloc_keys_snapshot</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">InventoryPeriodSnapshotItem</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">snapshot</span><span class="o">=</span><span class="n">snap</span><span class="p">)</span><span class="o">.</span><span class="n">iterator</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">it</span><span class="o">.</span><span class="n">id_lot_id</span><span class="p">,</span> <span class="n">it</span><span class="o">.</span><span class="n">id_location_id</span><span class="p">)</span>
+        <span class="n">lotloc_keys_snapshot</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">qty_by_lot_loc</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">it</span><span class="o">.</span><span class="n">qty</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">lot_id</span><span class="p">,</span> <span class="n">loc_id</span><span class="p">),</span> <span class="n">qty</span> <span class="ow">in</span> <span class="n">qty_by_lot_loc</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">ls</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+            <span class="n">lot_id</span><span class="o">=</span><span class="n">lot_id</span><span class="p">,</span> <span class="n">location_id</span><span class="o">=</span><span class="n">loc_id</span><span class="p">,</span>
+            <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)}</span>
+        <span class="p">)</span>
+        <span class="n">ls</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">qty</span>
+        <span class="n">ls</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span>
+
+    <span class="n">all_lotloc_current</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s2">&quot;lot_id&quot;</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">))</span>
+    <span class="n">to_delete</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">all_lotloc_current</span> <span class="o">-</span> <span class="n">lotloc_keys_snapshot</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">to_delete</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Q</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">lot_id</span><span class="p">,</span> <span class="n">loc_id</span> <span class="ow">in</span> <span class="n">to_delete</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">|=</span> <span class="n">Q</span><span class="p">(</span><span class="n">lot_id</span><span class="o">=</span><span class="n">lot_id</span><span class="p">,</span> <span class="n">location_id</span><span class="o">=</span><span class="n">loc_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">q</span><span class="p">:</span>
+            <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+    <span class="n">prodloc_sum</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">))</span>
+    <span class="n">prodloc_val</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">))</span>
+    <span class="n">prodloc_keys_snapshot</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">InventoryPeriodSnapshotItem</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">snapshot</span><span class="o">=</span><span class="n">snap</span><span class="p">)</span><span class="o">.</span><span class="n">iterator</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">it</span><span class="o">.</span><span class="n">id_product_id</span><span class="p">,</span> <span class="n">it</span><span class="o">.</span><span class="n">id_location_id</span><span class="p">)</span>
+        <span class="n">prodloc_keys_snapshot</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">prodloc_sum</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">it</span><span class="o">.</span><span class="n">qty</span>
+        <span class="n">prodloc_val</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">it</span><span class="o">.</span><span class="n">total_cost</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">prod_id</span><span class="p">,</span> <span class="n">loc_id</span><span class="p">),</span> <span class="n">qty_sum</span> <span class="ow">in</span> <span class="n">prodloc_sum</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">total_val</span> <span class="o">=</span> <span class="n">prodloc_val</span><span class="p">[(</span><span class="n">prod_id</span><span class="p">,</span> <span class="n">loc_id</span><span class="p">)]</span>
+        <span class="n">avg</span> <span class="o">=</span> <span class="p">(</span><span class="n">total_val</span> <span class="o">/</span> <span class="n">qty_sum</span><span class="p">)</span> <span class="k">if</span> <span class="n">qty_sum</span> <span class="k">else</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="n">inv</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+            <span class="n">product_id</span><span class="o">=</span><span class="n">prod_id</span><span class="p">,</span> <span class="n">location_id</span><span class="o">=</span><span class="n">loc_id</span><span class="p">,</span>
+            <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">now</span><span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">qty_sum</span>
+        <span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span> <span class="o">=</span> <span class="n">avg</span>
+        <span class="n">inv</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">now</span>
+        <span class="n">inv</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">,</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">])</span>
+
+    <span class="n">all_prodloc_current</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s2">&quot;product_id&quot;</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">))</span>
+    <span class="n">to_zero</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">all_prodloc_current</span> <span class="o">-</span> <span class="n">prodloc_keys_snapshot</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">to_zero</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Q</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">prod_id</span><span class="p">,</span> <span class="n">loc_id</span> <span class="ow">in</span> <span class="n">to_zero</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">|=</span> <span class="n">Q</span><span class="p">(</span><span class="n">product_id</span><span class="o">=</span><span class="n">prod_id</span><span class="p">,</span> <span class="n">location_id</span><span class="o">=</span><span class="n">loc_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">q</span><span class="p">:</span>
+            <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">quantity</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="n">avg_unit_cost</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="n">updated_at</span><span class="o">=</span><span class="n">now</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;ini_movements&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">bulk_movs</span><span class="p">),</span>
+        <span class="s2">&quot;lot_items&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">lotloc_keys_snapshot</span><span class="p">),</span>
+        <span class="s2">&quot;products&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">prodloc_keys_snapshot</span><span class="p">),</span>
+        <span class="s2">&quot;cleaned_lotstock&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">to_delete</span><span class="p">),</span>
+        <span class="s2">&quot;zeroed_inventory&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">to_zero</span><span class="p">),</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="get_active_period">
+<a class="viewcode-back" href="../../api/inventory/inventory.services.html#inventory.services.get_active_period">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_active_period</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieves the currently active inventory period.</span>
+
+<span class="sd">    :return: InventoryConfig instance if active period exists, otherwise None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;main_location&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="get_previous_period">
+<a class="viewcode-back" href="../../api/inventory/inventory.services.html#inventory.services.get_previous_period">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_previous_period</span><span class="p">(</span><span class="n">current_cfg</span><span class="p">:</span> <span class="n">InventoryConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieves the most recent closed inventory period, excluding the current one.</span>
+
+<span class="sd">    :param current_cfg: The current InventoryConfig instance.</span>
+<span class="sd">    :return: The last closed InventoryConfig or None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">current_cfg</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;-fecha_corte&#39;</span><span class="p">,</span> <span class="s1">&#39;-id&#39;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">first</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="construir_snapshot_desde_movimientos_periodo">
+<a class="viewcode-back" href="../../api/inventory/inventory.services.html#inventory.services.construir_snapshot_desde_movimientos_periodo">[documentos]</a>
+<span class="nd">@transaction</span><span class="o">.</span><span class="n">atomic</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">construir_snapshot_desde_movimientos_periodo</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">prev_cfg</span><span class="p">:</span> <span class="n">InventoryConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InventoryPeriodSnapshot</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builds a snapshot from the previous period&#39;s movements if none exists.</span>
+
+<span class="sd">    :param user: User performing the operation.</span>
+<span class="sd">    :param prev_cfg: Previous InventoryConfig to analyze.</span>
+<span class="sd">    :return: Created InventoryPeriodSnapshot instance, or None if no positive balances.</span>
+<span class="sd">    :raises: ValueError for inconsistent or missing data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">prev_cfg</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">ZERO_QTY</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">),</span> <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+    <span class="n">ZERO_VAL</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">),</span> <span class="n">output_field</span><span class="o">=</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+
+    <span class="n">agg</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="n">prev_cfg</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;product_id&quot;</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">,</span> <span class="s2">&quot;lot_id&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+            <span class="n">entradas</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;entrada_cantidad&quot;</span><span class="p">),</span> <span class="n">ZERO_QTY</span><span class="p">),</span>
+            <span class="n">salidas</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;salida_cantidad&quot;</span><span class="p">),</span> <span class="n">ZERO_QTY</span><span class="p">),</span>
+            <span class="n">entrada_valor</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;entrada_valor&quot;</span><span class="p">),</span> <span class="n">ZERO_VAL</span><span class="p">),</span>
+            <span class="n">salida_valor</span><span class="o">=</span><span class="n">Coalesce</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;salida_valor&quot;</span><span class="p">),</span> <span class="n">ZERO_VAL</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+            <span class="n">qty</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;entradas&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;salidas&quot;</span><span class="p">),</span>
+            <span class="n">total</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;entrada_valor&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;salida_valor&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">qty__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;product_id&quot;</span><span class="p">,</span> <span class="s2">&quot;location_id&quot;</span><span class="p">,</span> <span class="s2">&quot;lot_id&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">agg</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">tz</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">get_current_timezone</span><span class="p">()</span>
+    <span class="n">cutoff_dt</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span>
+        <span class="n">prev_cfg</span><span class="o">.</span><span class="n">fecha_corte</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">prev_cfg</span><span class="o">.</span><span class="n">fecha_corte</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">prev_cfg</span><span class="o">.</span><span class="n">fecha_corte</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+        <span class="mi">23</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">tz</span>
+    <span class="p">)</span>
+
+    <span class="n">snap</span> <span class="o">=</span> <span class="n">InventoryPeriodSnapshot</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">periodo</span><span class="o">=</span><span class="n">prev_cfg</span><span class="p">,</span>
+        <span class="n">cutoff_ts</span><span class="o">=</span><span class="n">cutoff_dt</span><span class="p">,</span>
+        <span class="n">creado_por</span><span class="o">=</span><span class="n">user</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">agg</span><span class="p">:</span>
+        <span class="n">qty</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;total&quot;</span><span class="p">]</span>
+        <span class="n">unit_cost</span> <span class="o">=</span> <span class="p">(</span><span class="n">total</span> <span class="o">/</span> <span class="n">qty</span><span class="p">)</span> <span class="k">if</span> <span class="n">qty</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">)</span>
+        <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">InventoryPeriodSnapshotItem</span><span class="p">(</span>
+            <span class="n">snapshot</span><span class="o">=</span><span class="n">snap</span><span class="p">,</span>
+            <span class="n">id_product_id</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;product_id&quot;</span><span class="p">],</span>
+            <span class="n">id_location_id</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;location_id&quot;</span><span class="p">],</span>
+            <span class="n">id_lot_id</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;lot_id&quot;</span><span class="p">],</span>
+            <span class="n">qty</span><span class="o">=</span><span class="n">qty</span><span class="p">,</span>
+            <span class="n">unit_cost</span><span class="o">=</span><span class="n">unit_cost</span><span class="p">,</span>
+            <span class="n">total_cost</span><span class="o">=</span><span class="n">total</span><span class="p">,</span>
+        <span class="p">))</span>
+    <span class="n">InventoryPeriodSnapshotItem</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">snap</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

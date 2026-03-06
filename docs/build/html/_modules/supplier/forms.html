@@ -1,0 +1,189 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>supplier.forms &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">supplier.forms</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para supplier.forms</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">django</span><span class="w"> </span><span class="kn">import</span> <span class="n">forms</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">supplier.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Supplier</span>
+
+
+<div class="viewcode-block" id="SupplierForm">
+<a class="viewcode-back" href="../../api/supplier/supplier.forms.html#supplier.forms.SupplierForm">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SupplierForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">ModelForm</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    It is directly linked to the Supplier model and defines how each field</span>
+<span class="sd">    should be displayed in the interface.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SupplierForm.Meta">
+<a class="viewcode-back" href="../../api/supplier/supplier.forms.html#supplier.forms.SupplierForm.Meta">[documentos]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">Supplier</span>
+
+        <span class="c1"># Fields that will appear in the form</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">,</span> <span class="s2">&quot;phone&quot;</span><span class="p">,</span> <span class="s2">&quot;city&quot;</span><span class="p">,</span> <span class="s2">&quot;country&quot;</span><span class="p">,</span> <span class="s2">&quot;notes&quot;</span><span class="p">,</span> <span class="s2">&quot;active&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span><span class="p">]</span>
+
+        <span class="n">widgets</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">forms</span><span class="o">.</span><span class="n">TextInput</span><span class="p">(</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;placeholder&quot;</span><span class="p">:</span> <span class="s2">&quot;Enter supplier name&quot;</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="c1"># Text box for the supplier&#39;s name. Required and unique.</span>
+
+            <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">forms</span><span class="o">.</span><span class="n">EmailInput</span><span class="p">(</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;placeholder&quot;</span><span class="p">:</span> <span class="s2">&quot;example@email.com&quot;</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="c1"># Email field with validation. Used to store supplier&#39;s contact email.</span>
+
+            <span class="s2">&quot;phone&quot;</span><span class="p">:</span> <span class="n">forms</span><span class="o">.</span><span class="n">TextInput</span><span class="p">(</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;placeholder&quot;</span><span class="p">:</span> <span class="s2">&quot;+502 5555 5555&quot;</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="c1">#  Input for supplier phone number. Accepts digits, spaces, + and -.</span>
+
+            <span class="s2">&quot;city&quot;</span><span class="p">:</span> <span class="n">forms</span><span class="o">.</span><span class="n">TextInput</span><span class="p">(</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;placeholder&quot;</span><span class="p">:</span> <span class="s2">&quot;City&quot;</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="c1">#  Text box for the city where the supplier is located.</span>
+
+            <span class="s2">&quot;country&quot;</span><span class="p">:</span> <span class="n">forms</span><span class="o">.</span><span class="n">TextInput</span><span class="p">(</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;placeholder&quot;</span><span class="p">:</span> <span class="s2">&quot;Country&quot;</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="c1">#  Text box for the supplier’s country. Default is Guatemala.</span>
+
+            <span class="s2">&quot;notes&quot;</span><span class="p">:</span> <span class="n">forms</span><span class="o">.</span><span class="n">Textarea</span><span class="p">(</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;textarea textarea-bordered w-full&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                    <span class="s2">&quot;placeholder&quot;</span><span class="p">:</span> <span class="s2">&quot;Additional information or comments&quot;</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="c1">#  Multi-line text area for notes or remarks about the supplier.</span>
+
+            <span class="s2">&quot;age&quot;</span><span class="p">:</span> <span class="n">forms</span><span class="o">.</span><span class="n">NumberInput</span><span class="p">(</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;input input-bordered w-full&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;placeholder&quot;</span><span class="p">:</span> <span class="s2">&quot;Age (optional)&quot;</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="c1">#  Numeric field for supplier or representative’s age (optional).</span>
+
+            <span class="s2">&quot;active&quot;</span><span class="p">:</span> <span class="n">forms</span><span class="o">.</span><span class="n">CheckboxInput</span><span class="p">(</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;toggle toggle-primary&quot;</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="c1"># Toggle button to mark the supplier as active or inactive.</span>
+        <span class="p">}</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

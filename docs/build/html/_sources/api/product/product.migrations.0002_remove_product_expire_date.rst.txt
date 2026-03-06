@@ -1,0 +1,7 @@
+product.migrations.0002\_remove\_product\_expire\_date module
+=============================================================
+
+.. automodule:: product.migrations.0002_remove_product_expire_date
+   :members:
+   :show-inheritance:
+   :undoc-members:

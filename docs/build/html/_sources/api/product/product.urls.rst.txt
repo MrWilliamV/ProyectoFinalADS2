@@ -1,0 +1,7 @@
+product.urls module
+===================
+
+.. automodule:: product.urls
+   :members:
+   :show-inheritance:
+   :undoc-members:

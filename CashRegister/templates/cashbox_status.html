@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="text-2xl font-bold mb-4">Estado de caja</h1>
+
+{% if messages %}
+<div class="space-y-2 mb-3">
+    {% for m in messages %}
+    <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+        <span>{{ m }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if session %}
+<div class="card bg-base-100 shadow-sm">
+    <div class="card-body">
+        <p><b>Ubicación:</b> {{ session.location.name }} ({{ session.location.code }})</p>
+        <p><b>Bloque:</b> {{ session.get_block_display }}</p>
+        <p><b>Apertura:</b> Q {{ session.opening_amount }}</p>
+        <p><b>Efectivo esperado:</b> Q {{ expected }}</p>
+        <div class="card-actions justify-end">
+            <a href="{% url 'cashbox_close' %}" class="btn btn-warning">Cerrar caja</a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">No hay caja abierta.</div>
+<a href="{% url 'cashbox_open' %}" class="btn btn-primary mt-3">Abrir caja (Q 1000)</a>
+{% endif %}
+
+{% endblock %}

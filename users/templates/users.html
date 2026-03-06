@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Administrar usuarios{% endblock %}
+
+{% block content %}
+<div class="prose max-w-none">
+
+    <form method="get" class="flex items-center gap-3 mb-4">
+        <label class="label-text font-semibold">Mostrar</label>
+        <select name="status" class="select select-bordered select-sm">
+            <option value="active" {% if status == 'active' %}selected{% endif %}>Usuarios activos</option>
+            <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Usuarios inactivos</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+    </form>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6">
+        {% for user in users %}
+
+        <div class="relative">
+
+            <div class="card cursor-pointer transition hover:shadow-lg {% if user.is_active %}shadow bg-base-100{% else %}opacity-70 bg-base-200{% endif %}"
+                 onclick="document.getElementById('user_modal_{{ user.id }}').showModal()">
+                <div class="card-body">
+
+                    <div class="absolute top-2 right-2 flex gap-2">
+
+                        {% with current_role=user.groups.all.0 %}
+                        {% if current_role %}
+                        <div class="badge badge-primary ">
+                            {{ current_role.name }}
+                        </div>
+                        {% else %}
+                        <div class="badge ">SIN ROL</div>
+                        {% endif %}
+                        {% endwith %}
+
+                        {% if user.is_active %}
+                        {% if user.id != request.user.id %}
+                        <form method="post" action="{% url 'is_active' user.id 0 %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-circle btn-ghost" title="Desactivar">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                     stroke-width="1.5" stroke="currentColor" class="size-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                            </button>
+                        </form>
+                        {% endif %}
+
+
+                        {% else %}
+                        <form method="post" action="{% url 'is_active' user.id 1 %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-circle btn-ghost" title="Activar">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                     stroke-width="1.5" stroke="currentColor" class="size-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                </svg>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+
+                    <!-- Contenido de la tarjeta -->
+                    <h2 class="card-title">{{ user.username }}</h2>
+                    <p class="text-sm opacity-80">{{ user.first_name }} {{ user.last_name }}</p>
+                    <p class="text-sm">{{ user.email }}</p>
+                </div>
+            </div>
+
+            <dialog id="user_modal_{{ user.id }}" class="modal">
+                <div class="modal-box w-11/12 max-w-3xl">
+                    <form method="dialog">
+                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    </form>
+
+                    <h3 class="text-xl font-bold mb-2">Usuario: {{ user.username }}</h3>
+
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <p><span class="font-semibold">Nombre:</span> {{ user.first_name }} {{ user.last_name }}</p>
+                            <p><span class="font-semibold">Correo:</span> {{ user.email }}</p>
+                            <p><span class="font-semibold">Estado:</span>
+                                {% if user.is_active %}<span class="badge badge-success">Activo</span>
+                                {% else %}<span class="badge">Inactivo</span>{% endif %}
+                            </p>
+                            <p><span class="font-semibold">Rol actual:</span>
+                                {% with current_role=user.groups.all.0 %}
+                                {% if current_role %}
+                                <span class="badge badge-primary">{{ current_role.name }}</span>
+                                {% else %}
+                                <span class="badge">SIN ROL</span>
+                                {% endif %}
+                                {% endwith %}
+                            </p>
+                        </div>
+
+                        <div>
+                            <form action="{% url 'update_user_role' user.id %}" method="post" class="space-y-2">
+                                {% csrf_token %}
+                                <label class="label"><span class="label-text">Cambiar rol</span></label>
+                                <select name="role" class="select select-bordered w-full" required>
+                                    {% with current_role=user.groups.all.0 %}
+                                    {% for r in roles %}
+                                    <option value="{{ r.name }}"
+                                            {% if current_role and current_role.name == r.name %}selected{% endif %}>
+                                        {{ r.name|title }}
+                                    </option>
+                                    {% endfor %}
+                                    {% endwith %}
+                                </select>
+                                <button type="submit" class="btn btn-primary">Guardar rol</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="divider my-4">Permisos</div>
+
+                    {% with current_role=user.groups.all.0 %}
+                    {% if current_role %}
+                    {% if current_role.name == "ADMINISTRADOR" %}
+                    <ul class="list-disc pl-6">
+                        <li class="text-sm">Puede acceder a todas las funcionalidades del sistema.</li>
+                        <li class="text-sm">Puede crear, editar y eliminar usuarios.</li>
+                        <li class="text-sm">Puede gestionar inventario, ventas y reportes.</li>
+                    </ul>
+                    {% elif current_role.name == "VENDEDOR" %}
+                    <ul class="list-disc pl-6">
+                        <li class="text-sm">Puede realizar ventas y emitir facturas.</li>
+                        <li class="text-sm">Puede aperturar caja y registrar movimientos de efectivo.</li>
+                    </ul>
+                    {% elif current_role.name == "AUDITOR" %}
+                    <ul class="list-disc pl-6">
+                        <li class="text-sm">Puede exportar reportes de caja, inventario y kardex.</li>
+                        <li class="text-sm">Tiene acceso de solo lectura a la información del sistema.</li>
+                    </ul>
+                    {% elif current_role.name == "JEFE_ALMACEN" %}
+                    <ul class="list-disc pl-6">
+                        <li class="text-sm">Puede ver el inventario y realizar transferencias de stock.</li>
+                        <li class="text-sm">Puede registrar entradas por lote e inventario inicial (cuando hay período
+                            previo activo).
+                        </li>
+                        <li class="text-sm">Puede crear, editar o eliminar productos del catálogo.</li>
+                    </ul>
+                    {% else %}
+                    <p class="text-sm opacity-70">Este rol no tiene responsabilidades definidas aún.</p>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-sm opacity-70">El usuario aún no tiene un rol asignado.</p>
+                    {% endif %}
+                    {% endwith %}
+
+                    <div class="modal-action">
+                        <form method="dialog">
+                            <button class="btn">Cerrar</button>
+                        </form>
+                    </div>
+                </div>
+            </dialog>
+
+        </div>
+        {% empty %}
+        <p>No hay usuarios registrados.</p>
+        {% endfor %}
+    </div>
+
+    <button onclick="add_user_modal.showModal()"
+            class="btn btn-square fixed bottom-4 right-4 w-20 h-20">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+             stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"/>
+        </svg>
+    </button>
+
+    <dialog id="add_user_modal" class="modal">
+        <div class="modal-box max-w-3xl">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+
+            <h3 class="text-lg font-bold mb-2">Agregar un nuevo usuario</h3>
+            <p class="text-sm opacity-70 mb-4">
+                Completa los datos del usuario y selecciona el rol que desempeñará.
+            </p>
+
+            <form method="post" action="{% url 'create_user' %}" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% csrf_token %}
+
+                <div class="space-y-2">
+                    <input type="text" name="username" placeholder="Usuario" class="input input-bordered w-full"
+                           required/>
+                    <input type="text" name="first_name" placeholder="Nombre" class="input input-bordered w-full"/>
+                    <input type="text" name="last_name" placeholder="Apellido" class="input input-bordered w-full"/>
+                    <input type="email" name="email" placeholder="Correo" class="input input-bordered w-full"/>
+                    <input type="password" name="password" placeholder="Contraseña" class="input input-bordered w-full"
+                           required/>
+
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Rol</span></label>
+                        <select name="role" class="select select-bordered w-full" required>
+                            <option value="">-- Seleccione un rol --</option>
+                            {% for r in roles %}
+                            <option value="{{ r.name }}">{{ r.name|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-full mt-2">Guardar usuario</button>
+                </div>
+
+                <div class="card card-dash bg-base-200 overflow-y-auto max-h-80">
+                    <p class="font-semibold mb-2">Descripción de roles</p>
+
+                    <div class="text-sm space-y-3">
+                        <div>
+                            <span class="badge badge-primary">ADMINISTRADOR</span>
+                            <ul class="list-disc pl-5">
+                                <li>Puede acceder a todas las funcionalidades del sistema.</li>
+                                <li>Puede crear, editar y eliminar usuarios.</li>
+                                <li>Puede gestionar inventario, ventas y reportes.</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <span class="badge badge-primary">VENDEDOR</span>
+                            <ul class="list-disc pl-5">
+                                <li>Puede realizar ventas y emitir facturas.</li>
+                                <li>Puede aperturar caja y registrar movimientos de efectivo.</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <span class="badge badge-primary">AUDITOR</span>
+                            <ul class="list-disc pl-5">
+                                <li>Puede exportar reportes de caja, inventario y kardex.</li>
+                                <li>Tiene acceso de solo lectura a la información del sistema.</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <span class="badge badge-primary">JEFE ALMACÉN</span>
+                            <ul class="list-disc pl-5">
+                                <li>Puede ver el inventario y realizar transferencias de stock.</li>
+                                <li>Puede registrar entradas por lote e inventario inicial (cuando hay período previo
+                                    activo).
+                                </li>
+                                <li>Puede crear, editar o eliminar productos del catálogo.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </dialog>
+
+
+</div>
+{% endblock %}

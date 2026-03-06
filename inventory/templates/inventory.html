@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between gap-3">
+        <div>
+            <h1 class="text-4xl font-bold">Entrada por lotes a bodega</h1>
+            <p class="text-sm opacity-70">Seleccione la ubicación y el producto para consultar el stock disponible.</p>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="space-y-2">
+        {% for m in messages %}
+        <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+            <span>{{ m }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="get" class="card bg-base-100 shadow-sm">
+        <div class="card-body grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label class="form-control">
+                <div class="label"><span class="label-text">Ubicación</span></div>
+                <select name="location" class="select select-bordered w-full" required>
+                    <option value="">Seleccione una ubicación...</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc.id_location }}" {% if location_id == loc.id_location %}selected{% endif %}> {{ loc.name }} ({{ loc.code }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label class="form-control">
+                <div class="label"><span class="label-text">Producto</span></div>
+                <select name="product" class="select select-bordered w-full" required>
+                    <option value="">Seleccione un producto…</option>
+                    {% for p in products %}
+                    <option value="{{ p.pk }}" {% if product_id == p.pk %}selected{% endif %}> {{ p.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <div class="flex items-end">
+                <button class="btn btn-primary w-full">Cambiar</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body">
+            <h2 class="card-title">Nueva entrada</h2>
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-error"><span>{{ form.non_field_errors }}</span></div>
+            {% endif %}
+
+            <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% csrf_token %}
+                <input type="hidden" name="movement_type" value="PUR">
+                <input type="hidden" name="product" value="{{ product_id }}">
+                <input type="hidden" name="location" value="{{ location_id }}">
+
+                <div class="md:col-span-2">
+                    <div class="badge badge-success badge-lg">Tipo: Entrada (Compra por lotes)</div>
+                </div>
+
+                <!-- Lot code -->
+                <label class="form-control">
+                    <div class="label">
+                        <span class="label-text">Codigo de lote</span>
+                        {% if form.lot_code.errors %}
+                        <span class="label-text-alt text-error">{{ form.lot_code.errors|striptags }}</span>
+                        {% endif %}
+                    </div>
+                    <input type="text" maxlength="45" name="lot_code" id="{{ form.lot_code.id_for_label }}"
+                           class="input input-bordered w-full" placeholder="Ej. LOTE-ABC-001">
+                    <div class="label">
+                        <span class="label-text-alt opacity-70">
+                            Si no existe, se creará automáticamente.
+                        </span>
+                    </div>
+                </label>
+
+                <!-- Expiration date -->
+                <label class="form-control">
+                    <div class="label">
+                        <span class="label-text">Fecha de vencimiento</span>
+                        {% if form.expire_date.errors %}
+                        <span class="label-text-alt text-error">{{ form.expire_date.errors|striptags }}</span>
+                        {% endif %}
+                    </div>
+                    <input type="date" name="expire_date" id="{{ form.expire_date.id_for_label }}"
+                           class="input input-bordered w-full">
+                </label>
+
+                <!-- Quantity -->
+                <label class="form-control">
+                    <div class="label justify-between items-center">
+                        <div>
+                            <span class="label-text">Cantidad</span>
+                            {% if form.quantity.errors %}
+                            <span class="label-text-alt text-error">{{ form.quantity.errors|striptags }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="label-text-alt text-gray-500">
+                            {% if qty_meta and qty_meta.max %}
+                            Máx: {{ qty_meta.max }}
+                            {% if qty_meta.current is not None %}
+                            · Actual: {{ qty_meta.current }}
+                            {% endif %}
+                            {% else %}
+                            Máx: —
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <input type="number" step="1" min="1" name="quantity"
+                           id="{{ form.quantity.id_for_label }}"
+                           class="input input-bordered w-full" placeholder="1" required>
+                </label>
+
+                <!-- Unit value -->
+                <label class="form-control">
+                    <div class="label">
+                        <span class="label-text">Valor unitario</span>
+                        {% if form.unit_price_in.errors %}
+                        <span class="label-text-alt text-error">{{ form.unit_price_in.errors|striptags }}</span>
+                        {% endif %}
+                    </div>
+                    <input type="number" step="0.01" min="0.01" name="unit_price_in"
+                           id="{{ form.unit_price_in.id_for_label }}"
+                           class="input input-bordered w-full" placeholder="10.99">
+                    <div class="label">
+                        <span class="label-text-alt opacity-70">Usado para recalcular el costo promedio.</span>
+                    </div>
+                </label>
+
+                <!-- Provider -->
+                <label class="form-control">
+                    <div class="label">
+                        <span class="label-text">Proveedor</span>
+                        {% if form.supplier.errors %}
+                        <span class="label-text-alt text-error">{{ form.supplier.errors|striptags }}</span>
+                        {% endif %}
+                    </div>
+                    <select name="supplier" id="{{ form.supplier.id_for_label }}" class="select select-bordered w-full" required>
+                        <option value="">Seleccione un proveedor…</option>
+                        {% for s in form.fields.supplier.queryset %}
+                        <option value="{{ s.pk }}" {% if form.supplier.value == s.pk %}selected{% endif %}>
+                            {{ s.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <!-- Description -->
+                <label class="form-control md:col-span-2">
+                    <div class="label">
+                        <span class="label-text">Descripción</span>
+                        {% if form.descripcion.errors %}
+                        <span class="label-text-alt text-error">{{ form.descripcion.errors|striptags }}</span>
+                        {% endif %}
+                    </div>
+                    <textarea name="descripcion" id="{{ form.descripcion.id_for_label }}"
+                              class="textarea textarea-bordered min-h-24"
+                              placeholder="Ej. Ingreso por compra"></textarea>
+                </label>
+
+                <div class="md:col-span-2 card-actions justify-end mt-2">
+                    <button type="submit" name="action" value="save" class="btn btn-primary">Guardar entrada</button>
+                    <a href="{% url 'inventory' %}" class="btn btn-ghost">Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

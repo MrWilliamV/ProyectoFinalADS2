@@ -1,0 +1,449 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>inventory.models &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">inventory.models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para inventory.models</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.conf</span><span class="w"> </span><span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">product.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Product</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">supplier.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Supplier</span>
+
+
+<div class="viewcode-block" id="Location">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.Location">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Location</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">      id_location (PositiveSmallIntegerField): Primary key.</span>
+<span class="sd">        code (CharField): Two-character unique code (e.g., &#39;WH&#39;, &#39;ST&#39;).</span>
+<span class="sd">        name (CharField): Descriptive name of the location.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">id_location</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">PositiveSmallIntegerField</span><span class="p">(</span>
+        <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s2">&quot;id_location&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">code</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;location&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="ProductLot">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.ProductLot">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProductLot</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     id_lot (BigAutoField): Primary key.</span>
+<span class="sd">        product (FK to Product): The product this lot belongs to.</span>
+<span class="sd">        lot_code (CharField): Unique lot code per product.</span>
+<span class="sd">        expire_date (DateField): Expiration date of the lot.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">id_lot</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BigAutoField</span><span class="p">(</span><span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">Product</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s2">&quot;id_product&quot;</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">)</span>
+    <span class="n">lot_code</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+    <span class="n">expire_date</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">()</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;product_lot&quot;</span>
+        <span class="n">unique_together</span> <span class="o">=</span> <span class="p">((</span><span class="s2">&quot;product&quot;</span><span class="p">,</span> <span class="s2">&quot;lot_code&quot;</span><span class="p">),)</span></div>
+
+
+
+<div class="viewcode-block" id="Inventory">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.Inventory">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Inventory</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    id_inventory (BigAutoField): Primary key.</span>
+<span class="sd">        product (FK to Product): Product being tracked.</span>
+<span class="sd">        location (FK to Location): Associated warehouse or store.</span>
+<span class="sd">        quantity (DecimalField): Current quantity in stock.</span>
+<span class="sd">        avg_unit_cost (DecimalField): Weighted average cost per unit.</span>
+<span class="sd">        min_stock (DecimalField): Minimum stock threshold for alerts.</span>
+<span class="sd">        max_stock (DecimalField): Maximum stock threshold for alerts.</span>
+<span class="sd">        updated_at (DateTimeField): Last update timestamp.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">id_inventory</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BigAutoField</span><span class="p">(</span><span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">Product</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s2">&quot;id_product&quot;</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">)</span>
+    <span class="n">location</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">Location</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s2">&quot;id_location&quot;</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">)</span>
+    <span class="n">quantity</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">))</span>
+    <span class="n">avg_unit_cost</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">))</span>
+    <span class="n">min_stock</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s1">&#39;0.00&#39;</span><span class="p">))</span>
+    <span class="n">max_stock</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s1">&#39;0.00&#39;</span><span class="p">))</span>
+    <span class="n">updated_at</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">()</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;inventory&quot;</span>
+        <span class="n">unique_together</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="s2">&quot;product&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">permissions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;transfer_stock&quot;</span><span class="p">,</span> <span class="s2">&quot;Puede realizar transferencias&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;lot_entry&quot;</span><span class="p">,</span> <span class="s2">&quot;Puede registrar entradas por lote&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;initial_inventory&quot;</span><span class="p">,</span> <span class="s2">&quot;Puede cargar inventario inicial&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;export_kardex&quot;</span><span class="p">,</span> <span class="s2">&quot;Puede exportar kardex&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;export_inventory&quot;</span><span class="p">,</span> <span class="s2">&quot;Puede exportar reporte de inventario&quot;</span><span class="p">),</span>
+        <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="LotStock">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.LotStock">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LotStock</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">      id_lot_stock (BigAutoField): Primary key.</span>
+<span class="sd">        lot (FK to ProductLot): Product lot reference.</span>
+<span class="sd">        location (FK to Location): Warehouse or store location.</span>
+<span class="sd">        quantity (DecimalField): Current available quantity of the lot.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">id_lot_stock</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BigAutoField</span><span class="p">(</span><span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s2">&quot;id_lot_stock&quot;</span><span class="p">)</span>
+    <span class="n">lot</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;ProductLot&#39;</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;id_lot&#39;</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">)</span>
+    <span class="n">location</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;Location&#39;</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;id_location&#39;</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">)</span>
+    <span class="n">quantity</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">))</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;lot_stock&quot;</span>
+        <span class="n">constraints</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">UniqueConstraint</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lot&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;uk_lot_location&quot;</span><span class="p">),</span>
+        <span class="p">]</span></div>
+
+
+
+<span class="n">TIPO_MOVIMIENTO_INICIAL</span> <span class="o">=</span> <span class="s2">&quot;INI&quot;</span>
+
+
+<div class="viewcode-block" id="InventoryConfig">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.InventoryConfig">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InventoryConfig</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">       descripcion (CharField): Description of the configuration.</span>
+<span class="sd">        fecha_corte (DateField): Cutoff date marking the start of the new fiscal period.</span>
+<span class="sd">        fiscal_period (CharField): Fiscal type (currently only &#39;S&#39; = semestral).</span>
+<span class="sd">        main_location (FK to Location): Main warehouse where initial inventory is recorded.</span>
+<span class="sd">        is_active (BooleanField): Marks whether the configuration is currently active.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">FISCAL_SEMESTRAL</span> <span class="o">=</span> <span class="s2">&quot;S&quot;</span>
+    <span class="n">FISCAL_PERIOD_CHOICES</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">FISCAL_SEMESTRAL</span><span class="p">,</span> <span class="s2">&quot;Semestral (dos por año)&quot;</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="n">descripcion</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">fecha_corte</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span><span class="n">help_text</span><span class="o">=</span><span class="s2">&quot;Fecha de corte contable (punto de partida).&quot;</span><span class="p">)</span>
+    <span class="n">fiscal_period</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">FISCAL_PERIOD_CHOICES</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">FISCAL_SEMESTRAL</span><span class="p">)</span>
+    <span class="n">main_location</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s2">&quot;Location&quot;</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">PROTECT</span><span class="p">,</span> <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;inventory_main&quot;</span><span class="p">,</span>
+                                      <span class="n">help_text</span><span class="o">=</span><span class="s2">&quot;Único almacén donde se hará el inventario inicial.&quot;</span><span class="p">)</span>
+    <span class="n">is_active</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">verbose_name</span> <span class="o">=</span> <span class="s2">&quot;Configuración de Inventario&quot;</span>
+        <span class="n">verbose_name_plural</span> <span class="o">=</span> <span class="s2">&quot;Configuraciones de Inventario&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Config Inventario (corte: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">fecha_corte</span><span class="si">}</span><span class="s2">, periodo: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_fiscal_period_display</span><span class="p">()</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="InventoryMovement">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.InventoryMovement">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InventoryMovement</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">      id_movement (BigAutoField): Primary key.</span>
+<span class="sd">        product (FK to Product): Product involved in the movement.</span>
+<span class="sd">        location (FK to Location): Location of the movement.</span>
+<span class="sd">        lot (FK to ProductLot): Related lot, if applicable.</span>
+<span class="sd">        created_by (FK to User): User who created the record.</span>
+<span class="sd">        fecha (DateTimeField): Timestamp of the movement.</span>
+<span class="sd">        tipo_movimiento (CharField): Movement type (e.g., INI, PUR, SAL, etc.).</span>
+<span class="sd">        descripcion (CharField): Description or reference.</span>
+<span class="sd">        valor_unitario (DecimalField): Unit cost at the time of the movement.</span>
+<span class="sd">        entrada_cantidad / valor: Entry quantities and values.</span>
+<span class="sd">        salida_cantidad / valor: Exit quantities and values.</span>
+<span class="sd">        saldo_cantidad / valor: Updated running totals after this movement.</span>
+<span class="sd">        proveedor (FK to Supplier): Linked supplier for purchase-type movements.</span>
+<span class="sd">        unidad (CharField): Measurement unit for this transaction.</span>
+<span class="sd">        period (FK to InventoryConfig): Period in which the movement belongs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="InventoryMovement.MovementType">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.InventoryMovement.MovementType">[documentos]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">MovementType</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">TextChoices</span><span class="p">):</span>
+        <span class="n">OPEN</span> <span class="o">=</span> <span class="s2">&quot;OPEN&quot;</span><span class="p">,</span> <span class="s2">&quot;Apertura&quot;</span>
+        <span class="n">PUR</span> <span class="o">=</span> <span class="s2">&quot;PUR&quot;</span><span class="p">,</span> <span class="s2">&quot;Compra/Ingreso&quot;</span>
+        <span class="n">TIN</span> <span class="o">=</span> <span class="s2">&quot;TIN&quot;</span><span class="p">,</span> <span class="s2">&quot;Traslado Entrada&quot;</span>
+        <span class="n">TOUT</span> <span class="o">=</span> <span class="s2">&quot;TOUT&quot;</span><span class="p">,</span> <span class="s2">&quot;Traslado Salida&quot;</span>
+        <span class="n">SAL</span> <span class="o">=</span> <span class="s2">&quot;SAL&quot;</span><span class="p">,</span> <span class="s2">&quot;Venta/Salida&quot;</span>
+        <span class="n">ADJIN</span> <span class="o">=</span> <span class="s2">&quot;ADJIN&quot;</span><span class="p">,</span> <span class="s2">&quot;Ajuste Entrada&quot;</span>
+        <span class="n">ADJOUT</span> <span class="o">=</span> <span class="s2">&quot;ADJOUT&quot;</span><span class="p">,</span> <span class="s2">&quot;Ajuste Salida&quot;</span>
+        <span class="n">INI</span> <span class="o">=</span> <span class="s2">&quot;INI&quot;</span><span class="p">,</span> <span class="s2">&quot;Inventario incial&quot;</span></div>
+
+
+    <span class="n">id_movement</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BigAutoField</span><span class="p">(</span><span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Relaciones</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;product.Product&#39;</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;id_product&#39;</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">)</span>
+    <span class="n">location</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;Location&#39;</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;id_location&#39;</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">)</span>
+    <span class="n">lot</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;ProductLot&#39;</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;id_lot&#39;</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">,</span>
+                            <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">created_by</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span><span class="p">,</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;created_by&#39;</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">related_name</span><span class="o">=</span><span class="s1">&#39;inventory_movements&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Kardex</span>
+    <span class="n">fecha</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">()</span>
+    <span class="n">tipo_movimiento</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">MovementType</span><span class="o">.</span><span class="n">choices</span><span class="p">)</span>
+    <span class="n">descripcion</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+    <span class="n">valor_unitario</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+    <span class="c1"># Entradas / Salidas</span>
+    <span class="n">entrada_cantidad</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">))</span>
+    <span class="n">entrada_valor</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">))</span>
+    <span class="n">salida_cantidad</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">))</span>
+    <span class="n">salida_valor</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.0000&quot;</span><span class="p">))</span>
+
+    <span class="c1"># Saldos</span>
+    <span class="n">saldo_cantidad</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">saldo_valor</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+    <span class="c1"># Extras</span>
+    <span class="c1"># CHANGED: antes era CharField; ahora FK al proveedor</span>
+    <span class="n">proveedor</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">Supplier</span><span class="p">,</span> <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">,</span> <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;id_supplier&#39;</span><span class="p">)</span>
+    <span class="n">unidad</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;UND&quot;</span><span class="p">)</span>
+
+    <span class="n">period</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">InventoryConfig</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">PROTECT</span><span class="p">,</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="s2">&quot;period_id&quot;</span><span class="p">,</span>
+        <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;movements&quot;</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;inventory_movement&quot;</span>
+        <span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;period&quot;</span><span class="p">]),</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;product&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">,</span> <span class="s2">&quot;fecha&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ix_mov_prod_loc_fecha&quot;</span><span class="p">),</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;tipo_movimiento&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ix_mov_tipo&quot;</span><span class="p">),</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lot&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ix_mov_lot&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">fecha</span><span class="si">:</span><span class="s2">%Y-%m-%d %H:%M</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tipo_movimiento_display</span><span class="p">()</span><span class="si">}</span><span class="s2"> · </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">descripcion</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="InventoryInitialBatch">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.InventoryInitialBatch">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InventoryInitialBatch</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">      created_at (DateTimeField): Timestamp when the batch was created.</span>
+<span class="sd">        created_by (FK to User): User who created the batch.</span>
+<span class="sd">        file_name (CharField): Name of the imported file.</span>
+<span class="sd">        total_items (PositiveIntegerField): Total items processed.</span>
+<span class="sd">        notes (CharField): Optional notes or description.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">created_at</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">created_by</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">PROTECT</span><span class="p">)</span>
+    <span class="n">file_name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+    <span class="n">total_items</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">PositiveIntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">notes</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Batch Inicial #</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">created_at</span><span class="si">:</span><span class="s2">%Y-%m-%d</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">total_items</span><span class="si">}</span><span class="s2"> items)&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="validate_cutoff_for_movement">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.validate_cutoff_for_movement">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_cutoff_for_movement</span><span class="p">(</span><span class="n">movement</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">InventoryConfig</span> <span class="o">|</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validates whether a movement date is consistent with the active inventory configuration.</span>
+
+<span class="sd">    :param movement: InventoryMovement instance being validated.</span>
+<span class="sd">    :param config: Active InventoryConfig or None.</span>
+<span class="sd">    :raises: ValidationError if validation rules are violated.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="k">if</span> <span class="n">movement</span><span class="o">.</span><span class="n">period_id</span> <span class="ow">and</span> <span class="n">movement</span><span class="o">.</span><span class="n">period_id</span> <span class="o">!=</span> <span class="n">config</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;El movimiento pertenece a un periodo distinto al activo.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">movement</span><span class="o">.</span><span class="n">tipo_movimiento</span> <span class="o">==</span> <span class="n">TIPO_MOVIMIENTO_INICIAL</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">movement</span><span class="o">.</span><span class="n">fecha</span> <span class="o">!=</span> <span class="n">config</span><span class="o">.</span><span class="n">fecha_corte</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;El movimiento INICIAL debe registrarse en la fecha de corte contable.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">movement</span><span class="o">.</span><span class="n">fecha</span> <span class="o">&lt;</span> <span class="n">config</span><span class="o">.</span><span class="n">fecha_corte</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;No se permiten movimientos con fecha anterior a la fecha de corte contable.&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="InventoryPeriodSnapshot">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.InventoryPeriodSnapshot">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InventoryPeriodSnapshot</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">     periodo (FK to InventoryConfig): Configuration this snapshot belongs to.</span>
+<span class="sd">        cutoff_ts (DateTimeField): Timestamp of the closure.</span>
+<span class="sd">        creado_por (IntegerField): ID of the user who created it.</span>
+<span class="sd">        created_at (DateTimeField): Auto-generated timestamp.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">periodo</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">InventoryConfig</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">,</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;periodo_id&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">cutoff_ts</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">()</span>
+    <span class="n">creado_por</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;creado_por&#39;</span><span class="p">)</span>
+
+    <span class="n">created_at</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">db_table</span> <span class="o">=</span> <span class="s1">&#39;inventory_period_snapshot&#39;</span></div>
+
+
+
+<div class="viewcode-block" id="InventoryPeriodSnapshotItem">
+<a class="viewcode-back" href="../../api/inventory/inventory.models.html#inventory.models.InventoryPeriodSnapshotItem">[documentos]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InventoryPeriodSnapshotItem</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    snapshot (FK to InventoryPeriodSnapshot): Parent snapshot.</span>
+<span class="sd">        id_product (FK to Product): Product referenced.</span>
+<span class="sd">        id_location (FK to Location): Location of the item.</span>
+<span class="sd">        id_lot (FK to ProductLot): Lot, if applicable.</span>
+<span class="sd">        qty (DecimalField): Final quantity.</span>
+<span class="sd">        unit_cost (DecimalField): Unit cost at closure.</span>
+<span class="sd">        total_cost (DecimalField): Total cost (qty × unit_cost).</span>
+<span class="sd">        expiry (DateField): Optional expiration date.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">snapshot</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">InventoryPeriodSnapshot</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">CASCADE</span><span class="p">,</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;snapshot_id&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">id_product</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">Product</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">,</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;id_product&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">id_location</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">Location</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">,</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;id_location&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">id_lot</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">ProductLot</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">,</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="s1">&#39;id_lot&#39;</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">qty</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">unit_cost</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+    <span class="n">total_cost</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">max_digits</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">expiry</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span><span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">db_table</span> <span class="o">=</span> <span class="s1">&#39;inventory_period_snapshot_item&#39;</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,660 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sale.services &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">sale.services</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para sale.services</h1><div class="highlight"><pre>
+<span></span><span class="c1"># sale/services.py</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">BytesIO</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">transaction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.shortcuts</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_object_or_404</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">reportlab.lib.pagesizes</span><span class="w"> </span><span class="kn">import</span> <span class="n">letter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">reportlab.pdfgen</span><span class="w"> </span><span class="kn">import</span> <span class="n">canvas</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">reportlab.lib.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageReader</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">CashRegister.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">CashSession</span><span class="p">,</span> <span class="n">CashMovement</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">inventory.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Location</span><span class="p">,</span> <span class="n">Inventory</span><span class="p">,</span> <span class="n">InventoryMovement</span><span class="p">,</span> <span class="n">LotStock</span><span class="p">,</span> <span class="n">InventoryConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">product.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Product</span>
+
+
+
+<div class="viewcode-block" id="get_store_location">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.get_store_location">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_store_location</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Location</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the default store location.</span>
+
+<span class="sd">    :return: Location instance if found, otherwise None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">loc</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">code__iexact</span><span class="o">=</span><span class="s2">&quot;ST&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">loc</span><span class="p">:</span>
+        <span class="n">loc</span> <span class="o">=</span> <span class="n">Location</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">name__icontains</span><span class="o">=</span><span class="s2">&quot;tienda&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">loc</span></div>
+
+
+
+<div class="viewcode-block" id="find_product_by_code">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.find_product_by_code">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_product_by_code</span><span class="p">(</span><span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Product</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Finds a product by primary key or by barcode (if the field exists).</span>
+
+<span class="sd">    :param code: Product ID (PK as string) or barcode text.</span>
+<span class="sd">    :return: Product instance if found, otherwise None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">code</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">product</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">Product</span><span class="p">,</span> <span class="s2">&quot;barcode&quot;</span><span class="p">):</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="n">Product</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">barcode__iexact</span><span class="o">=</span><span class="n">code</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">product</span></div>
+
+
+
+<div class="viewcode-block" id="available_stock_nonexpired">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.available_stock_nonexpired">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">available_stock_nonexpired</span><span class="p">(</span><span class="n">product</span><span class="p">:</span> <span class="n">Product</span><span class="p">,</span> <span class="n">store</span><span class="p">:</span> <span class="n">Location</span><span class="p">,</span> <span class="n">on_date</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Decimal</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add available quantity for a product at a specific store,</span>
+<span class="sd">    considering only non-expired lots.</span>
+
+<span class="sd">    :param product: Product to check.</span>
+<span class="sd">    :param store: Location where to check the stock.</span>
+<span class="sd">    :param on_date: Date used to filter non-expired lots; today if None.</span>
+<span class="sd">    :return: Decimal with the available quantity (0 if none).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">on_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">on_date</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">localdate</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="n">lot__product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">lot__expire_date__gte</span><span class="o">=</span><span class="n">on_date</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">q</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;quantity&quot;</span><span class="p">))[</span><span class="s2">&quot;q&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="price_from_inventory">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.price_from_inventory">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">price_from_inventory</span><span class="p">(</span><span class="n">product</span><span class="p">:</span> <span class="n">Product</span><span class="p">,</span> <span class="n">store</span><span class="p">:</span> <span class="n">Location</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets the current average unit cost for a product at a store.</span>
+
+<span class="sd">    :param product: Product to price.</span>
+<span class="sd">    :param store: Location to look up its inventory.</span>
+<span class="sd">    :return: float with the average unit cost; 0.0 if not available.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inv</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">store</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span><span class="p">)</span> <span class="k">if</span> <span class="n">inv</span> <span class="ow">and</span> <span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span> <span class="k">else</span> <span class="mf">0.0</span></div>
+
+
+
+<div class="viewcode-block" id="current_qty_in_cart">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.current_qty_in_cart">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">current_qty_in_cart</span><span class="p">(</span><span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">product</span><span class="p">:</span> <span class="n">Product</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the quantity of a product already present in the cart.</span>
+
+<span class="sd">    :param cart: List of cart items (dicts with keys &#39;id&#39;, &#39;qty&#39;, &#39;price&#39;, &#39;subtotal&#39;).</span>
+<span class="sd">    :param product: Product to check in the cart.</span>
+<span class="sd">    :return: Integer quantity currently in the cart.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">id_product</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
+
+<div class="viewcode-block" id="add_or_increment_cart_item">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.add_or_increment_cart_item">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_or_increment_cart_item</span><span class="p">(</span><span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">product</span><span class="p">:</span> <span class="n">Product</span><span class="p">,</span> <span class="n">qty_to_add</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">unit_price</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adds a product into the cart or increases its quantity if already present.</span>
+
+<span class="sd">    :param cart: Current cart list stored in session.</span>
+<span class="sd">    :param product: Product to insert/increment.</span>
+<span class="sd">    :param qty_to_add: Quantity to add.</span>
+<span class="sd">    :param unit_price: Price to use for subtotal calculation.</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">id_product</span><span class="p">:</span>
+            <span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">qty_to_add</span>
+            <span class="n">item</span><span class="p">[</span><span class="s2">&quot;subtotal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">]</span>
+            <span class="k">break</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cart</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">product</span><span class="o">.</span><span class="n">id_product</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">product</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;price&quot;</span><span class="p">:</span> <span class="n">unit_price</span><span class="p">,</span>
+            <span class="s2">&quot;qty&quot;</span><span class="p">:</span> <span class="n">qty_to_add</span><span class="p">,</span>
+            <span class="s2">&quot;subtotal&quot;</span><span class="p">:</span> <span class="n">unit_price</span> <span class="o">*</span> <span class="n">qty_to_add</span><span class="p">,</span>
+        <span class="p">})</span></div>
+
+
+
+<div class="viewcode-block" id="increment_cart_item">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.increment_cart_item">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">increment_cart_item</span><span class="p">(</span><span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">id_product</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Increments by one the quantity of a product in the cart.</span>
+
+<span class="sd">    :param cart: Current cart list.</span>
+<span class="sd">    :param id_product: Product PK used inside the cart dicts.</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">id_product</span><span class="p">:</span>
+            <span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">item</span><span class="p">[</span><span class="s2">&quot;subtotal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">]</span>
+            <span class="k">break</span></div>
+
+
+
+<div class="viewcode-block" id="decrement_cart_item">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.decrement_cart_item">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">decrement_cart_item</span><span class="p">(</span><span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">id_product</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decrements by one the quantity of a product in the cart.</span>
+<span class="sd">    Removes the item if the result is &lt;= 0.</span>
+
+<span class="sd">    :param cart: Current cart list.</span>
+<span class="sd">    :param id_product: Product PK used inside the cart dicts.</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">id_product</span><span class="p">:</span>
+            <span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cart</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">item</span><span class="p">[</span><span class="s2">&quot;subtotal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">]</span>
+            <span class="k">break</span></div>
+
+
+
+<div class="viewcode-block" id="remove_cart_item">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.remove_cart_item">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_cart_item</span><span class="p">(</span><span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">id_product</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Removes a product from the cart regardless of its current quantity.</span>
+
+<span class="sd">    :param cart: Current cart list.</span>
+<span class="sd">    :param id_product: Product PK used inside the cart dicts.</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">id_product</span><span class="p">:</span>
+            <span class="n">cart</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="k">break</span></div>
+
+
+
+<div class="viewcode-block" id="cart_total">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.cart_total">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cart_total</span><span class="p">(</span><span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Decimal</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sums all item subtotals to produce the cart total.</span>
+
+<span class="sd">    :param cart: List of cart items with &#39;subtotal&#39; key.</span>
+<span class="sd">    :return: Decimal with the total value (0 if empty).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subtotal&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="parse_cash_received">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.parse_cash_received">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_cash_received</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Decimal</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Safely parses a raw cash string into Decimal.</span>
+
+<span class="sd">    :param raw: Raw input string from the request.</span>
+<span class="sd">    :return: Decimal with parsed value; 0.00 if parsing fails.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.00&quot;</span><span class="p">)</span></div>
+
+
+
+
+<div class="viewcode-block" id="require_active_period">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.require_active_period">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">require_active_period</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">InventoryConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ensures there is an active inventory period.</span>
+
+<span class="sd">    :return: InventoryConfig instance of the active period.</span>
+<span class="sd">    :raises: ValueError if no active period exists.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">InventoryConfig</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;There must be an active inventory period before making a sale.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cfg</span></div>
+
+
+
+<div class="viewcode-block" id="require_open_cash_session">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.require_open_cash_session">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">require_open_cash_session</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">Location</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CashSession</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ensures there is an open cash session for the given store.</span>
+
+<span class="sd">    :param store: Location where the cash session must be open.</span>
+<span class="sd">    :return: CashSession instance (latest open).</span>
+<span class="sd">    :raises: ValueError if there is no open session for that store.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">CashSession</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;-opened_at&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">session</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;You must open the cash register before recording sales.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">session</span></div>
+
+
+
+<div class="viewcode-block" id="verify_stock_per_item">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.verify_stock_per_item">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_stock_per_item</span><span class="p">(</span><span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">store</span><span class="p">:</span> <span class="n">Location</span><span class="p">,</span> <span class="n">on_date</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verifies each cart item has enough non-expired stock in the store.</span>
+
+<span class="sd">    :param cart: List of items (expects keys: &#39;id&#39;, &#39;qty&#39;).</span>
+<span class="sd">    :param store: Location to check stock from.</span>
+<span class="sd">    :param on_date: Date used to filter non-expired lots; today if None.</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    :raises: ValueError if any item exceeds the available non-expired stock.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">on_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">on_date</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">localdate</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="n">get_object_or_404</span><span class="p">(</span><span class="n">Product</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+        <span class="n">disponible</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span>
+            <span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="n">lot__product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">lot__expire_date__gte</span><span class="o">=</span><span class="n">on_date</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">q</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;quantity&quot;</span><span class="p">))[</span><span class="s2">&quot;q&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">disponible</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Insufficient stock in Store for </span><span class="si">{</span><span class="n">product</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Available (non-expired): </span><span class="si">{</span><span class="n">disponible</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="consume_stock_and_register_movements">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.consume_stock_and_register_movements">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">consume_stock_and_register_movements</span><span class="p">(</span><span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">store</span><span class="p">:</span> <span class="n">Location</span><span class="p">,</span> <span class="n">period</span><span class="p">:</span> <span class="n">InventoryConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Consumes lot quantities and updates inventory while creating SAL movements.</span>
+
+<span class="sd">    :param cart: Items to sell; expects keys: &#39;id&#39;, &#39;qty&#39;.</span>
+<span class="sd">    :param store: Store location where the sale occurs.</span>
+<span class="sd">    :param period: Active inventory period to bind movements.</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    :raises: ValueError if some item cannot be fully satisfied from available lots.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">localdate</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="n">get_object_or_404</span><span class="p">(</span><span class="n">Product</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+
+        <span class="n">inv</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Inventory</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+            <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span>
+            <span class="n">location</span><span class="o">=</span><span class="n">store</span><span class="p">,</span>
+            <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;avg_unit_cost&quot;</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)}</span>
+        <span class="p">)</span>
+        <span class="n">unit_cost</span> <span class="o">=</span> <span class="n">inv</span><span class="o">.</span><span class="n">avg_unit_cost</span>
+        <span class="n">qty_to_sell</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">])</span>
+
+        <span class="n">lotes_st</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">LotStock</span><span class="o">.</span><span class="n">objects</span>
+            <span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="n">lot__product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span> <span class="n">lot__expire_date__gte</span><span class="o">=</span><span class="n">today</span><span class="p">,</span> <span class="n">quantity__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;lot&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;lot__expire_date&quot;</span><span class="p">,</span> <span class="s2">&quot;lot_id&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">restante</span> <span class="o">=</span> <span class="n">qty_to_sell</span>
+        <span class="k">for</span> <span class="n">ls</span> <span class="ow">in</span> <span class="n">lotes_st</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">restante</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="n">tomar</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ls</span><span class="o">.</span><span class="n">quantity</span><span class="p">,</span> <span class="n">restante</span><span class="p">)</span>
+
+            <span class="c1"># Decrease lot and inventory</span>
+            <span class="n">ls</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">ls</span><span class="o">.</span><span class="n">quantity</span> <span class="o">-</span> <span class="n">tomar</span>
+            <span class="n">ls</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span>
+
+            <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="o">=</span> <span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="o">-</span> <span class="n">tomar</span>
+            <span class="n">inv</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span>
+
+            <span class="c1"># Create SAL movement</span>
+            <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                <span class="n">fecha</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+                <span class="n">tipo_movimiento</span><span class="o">=</span><span class="s2">&quot;SAL&quot;</span><span class="p">,</span>
+                <span class="n">descripcion</span><span class="o">=</span><span class="s2">&quot;Venta al contado&quot;</span><span class="p">,</span>
+                <span class="n">valor_unitario</span><span class="o">=</span><span class="n">unit_cost</span><span class="p">,</span>
+                <span class="n">entrada_cantidad</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span>
+                <span class="n">entrada_valor</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span>
+                <span class="n">salida_cantidad</span><span class="o">=</span><span class="n">tomar</span><span class="p">,</span>
+                <span class="n">salida_valor</span><span class="o">=</span><span class="n">tomar</span> <span class="o">*</span> <span class="n">unit_cost</span><span class="p">,</span>
+                <span class="n">saldo_cantidad</span><span class="o">=</span><span class="n">inv</span><span class="o">.</span><span class="n">quantity</span><span class="p">,</span>
+                <span class="n">saldo_valor</span><span class="o">=</span><span class="n">inv</span><span class="o">.</span><span class="n">quantity</span> <span class="o">*</span> <span class="n">unit_cost</span><span class="p">,</span>
+                <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span>
+                <span class="n">location</span><span class="o">=</span><span class="n">store</span><span class="p">,</span>
+                <span class="n">lot</span><span class="o">=</span><span class="n">ls</span><span class="o">.</span><span class="n">lot</span><span class="p">,</span>
+                <span class="n">unidad</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="s2">&quot;unidad&quot;</span><span class="p">,</span> <span class="s2">&quot;UND&quot;</span><span class="p">),</span>
+                <span class="n">period</span><span class="o">=</span><span class="n">period</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">restante</span> <span class="o">-=</span> <span class="n">tomar</span>
+
+        <span class="k">if</span> <span class="n">restante</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not complete the sale of </span><span class="si">{</span><span class="n">product</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. Missing: </span><span class="si">{</span><span class="n">restante</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="register_cash_movements">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.register_cash_movements">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">register_cash_movements</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">CashSession</span><span class="p">,</span> <span class="n">cash_received</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">change</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Registers cash movements (deposit and change if applies) in the cash session.</span>
+
+<span class="sd">    :param session: Open CashSession instance.</span>
+<span class="sd">    :param cash_received: Amount received from the customer.</span>
+<span class="sd">    :param change: Change to give back (&gt;= 0).</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">CashMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
+        <span class="n">mtype</span><span class="o">=</span><span class="s1">&#39;DEPOSITO&#39;</span><span class="p">,</span>
+        <span class="n">amount</span><span class="o">=</span><span class="n">cash_received</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Venta POS - Entrada cliente&#39;</span><span class="p">,</span>
+        <span class="n">created_at</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">change</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">CashMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
+            <span class="n">mtype</span><span class="o">=</span><span class="s1">&#39;RETIRO&#39;</span><span class="p">,</span>
+            <span class="n">amount</span><span class="o">=</span><span class="n">change</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Venta POS - Cambio entregado&#39;</span><span class="p">,</span>
+            <span class="n">created_at</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="build_invoice_pdf">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.build_invoice_pdf">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_invoice_pdf</span><span class="p">(</span><span class="n">invoice_number</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                      <span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
+                      <span class="n">total</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span>
+                      <span class="n">cash_received</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span>
+                      <span class="n">change</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builds a PDF invoice and returns its raw bytes.</span>
+
+<span class="sd">    :param invoice_number: Unique invoice identifier to display in the PDF.</span>
+<span class="sd">    :param cart: Items (expects: &#39;name&#39;, &#39;qty&#39;, &#39;price&#39;, &#39;subtotal&#39;).</span>
+<span class="sd">    :param total: Total amount of the sale.</span>
+<span class="sd">    :param cash_received: Cash amount received from the customer.</span>
+<span class="sd">    :param change: Change to return to the customer.</span>
+<span class="sd">    :return: Bytes content representing the generated PDF.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">buffer</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">canvas</span><span class="o">.</span><span class="n">Canvas</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">pagesize</span><span class="o">=</span><span class="n">letter</span><span class="p">)</span>
+    <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">letter</span>
+
+    <span class="n">logo_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;HealthAndHouse/static&quot;</span><span class="p">,</span> <span class="s2">&quot;img&quot;</span><span class="p">,</span> <span class="s2">&quot;logo.png&quot;</span><span class="p">)</span>
+    <span class="n">y_pos</span> <span class="o">=</span> <span class="n">height</span> <span class="o">-</span> <span class="mi">80</span>
+
+    <span class="c1"># Header &amp; logo</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logo_path</span><span class="p">):</span>
+        <span class="n">logo</span> <span class="o">=</span> <span class="n">ImageReader</span><span class="p">(</span><span class="n">logo_path</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">drawImage</span><span class="p">(</span><span class="n">logo</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="n">y_pos</span> <span class="o">-</span> <span class="mi">30</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">preserveAspectRatio</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">)</span>
+
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica-Bold&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="n">y_pos</span><span class="p">,</span> <span class="s2">&quot;Health &amp; House&quot;</span><span class="p">)</span>
+
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="n">y_pos</span> <span class="o">-</span> <span class="mi">15</span><span class="p">,</span> <span class="s2">&quot;No. Factura: &quot;</span> <span class="o">+</span> <span class="n">invoice_number</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="n">y_pos</span> <span class="o">-</span> <span class="mi">30</span><span class="p">,</span> <span class="s2">&quot;Cliente: CF (Consumidor Final)&quot;</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="n">y_pos</span> <span class="o">-</span> <span class="mi">45</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Fecha: </span><span class="si">{</span><span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1">/%m/%Y %H:%M&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">c</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">y_pos</span> <span class="o">-</span> <span class="mi">55</span><span class="p">,</span> <span class="n">width</span> <span class="o">-</span> <span class="mi">50</span><span class="p">,</span> <span class="n">y_pos</span> <span class="o">-</span> <span class="mi">55</span><span class="p">)</span>
+
+    <span class="c1"># Table header</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y_pos</span> <span class="o">-</span> <span class="mi">80</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica-Bold&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Producto&quot;</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">280</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Cantidad&quot;</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">380</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Precio&quot;</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">480</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Subtotal&quot;</span><span class="p">)</span>
+
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">-=</span> <span class="mi">20</span>
+
+    <span class="c1"># Items</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">showPage</span><span class="p">()</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">height</span> <span class="o">-</span> <span class="mi">100</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica-Bold&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Producto&quot;</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">280</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Cantidad&quot;</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">380</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Precio&quot;</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">480</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Subtotal&quot;</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">-=</span> <span class="mi">20</span>
+
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])[:</span><span class="mi">35</span><span class="p">]</span>
+        <span class="n">qty</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">]</span>
+        <span class="n">price</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">])</span>
+        <span class="n">subtotal</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;subtotal&quot;</span><span class="p">])</span>
+
+        <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">drawRightString</span><span class="p">(</span><span class="mi">330</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">qty</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">drawRightString</span><span class="p">(</span><span class="mi">430</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Q </span><span class="si">{</span><span class="n">price</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">drawRightString</span><span class="p">(</span><span class="mi">530</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Q </span><span class="si">{</span><span class="n">subtotal</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">-=</span> <span class="mi">15</span>
+
+    <span class="n">c</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="mi">5</span><span class="p">,</span> <span class="n">width</span> <span class="o">-</span> <span class="mi">50</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">-=</span> <span class="mi">25</span>
+
+    <span class="c1"># Totals</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica-Bold&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawRightString</span><span class="p">(</span><span class="mi">530</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Total: Q </span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">-=</span> <span class="mi">18</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica&quot;</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawRightString</span><span class="p">(</span><span class="mi">530</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Pago: Q </span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">cash_received</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">-=</span> <span class="mi">18</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawRightString</span><span class="p">(</span><span class="mi">530</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Vuelto: Q </span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">change</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Footer</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica-Oblique&quot;</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">setFillColorRGB</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawCentredString</span><span class="p">(</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s2">&quot;Gracias por preferirnos. ¡Vuelva pronto!&quot;</span><span class="p">)</span>
+
+    <span class="n">c</span><span class="o">.</span><span class="n">showPage</span><span class="p">()</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+    <span class="n">buffer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">pdf</span></div>
+
+
+
+<div class="viewcode-block" id="generate_invoice_number">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.generate_invoice_number">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_invoice_number</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates a simple invoice number based on the current timestamp.</span>
+
+<span class="sd">    :return: String with the generated invoice number (e.g., &#39;F20251031153022&#39;).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;F%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S&quot;</span><span class="p">)</span></div>
+
+
+
+
+<div class="viewcode-block" id="make_sale_transaction">
+<a class="viewcode-back" href="../../api/sale/sale.services.html#sale.services.make_sale_transaction">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_sale_transaction</span><span class="p">(</span><span class="n">cart</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
+                          <span class="n">store</span><span class="p">:</span> <span class="n">Location</span><span class="p">,</span>
+                          <span class="n">cash_received_raw</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">Decimal</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs the complete sale transaction:</span>
+<span class="sd">    validates active period and cash session, verifies stock, consumes lots,</span>
+<span class="sd">    registers cash movements, and generates the PDF invoice bytes.</span>
+
+<span class="sd">    :param cart: Cart items (expects keys: &#39;id&#39;, &#39;qty&#39;, &#39;price&#39;, &#39;subtotal&#39;).</span>
+<span class="sd">    :param store: Store Location where the sale is being made.</span>
+<span class="sd">    :param cash_received_raw: Raw string with the cash amount received from customer.</span>
+<span class="sd">    :return: Tuple like pdf_bytes, invoice_number, total, change.</span>
+<span class="sd">    :raises: ValueError if there is no active period/session, insufficient stock,</span>
+<span class="sd">             invalid totals, or insufficient cash received.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cart</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cart is empty.&quot;</span><span class="p">)</span>
+
+    <span class="n">period</span> <span class="o">=</span> <span class="n">require_active_period</span><span class="p">()</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">require_open_cash_session</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
+
+    <span class="c1"># Work with a copy of the cart for the PDF</span>
+    <span class="n">cart_for_pdf</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">]</span>
+
+    <span class="k">with</span> <span class="n">transaction</span><span class="o">.</span><span class="n">atomic</span><span class="p">():</span>
+        <span class="c1">#Verify stock per item (row-level locks)</span>
+        <span class="n">verify_stock_per_item</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">store</span><span class="p">,</span> <span class="n">on_date</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">localdate</span><span class="p">())</span>
+
+        <span class="c1">#Consume lots and register SAL movements</span>
+        <span class="n">consume_stock_and_register_movements</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">store</span><span class="p">,</span> <span class="n">period</span><span class="p">)</span>
+
+        <span class="c1">#Totals and cash handling</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">cart_total</span><span class="p">(</span><span class="n">cart</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">total</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Sale total must be greater than 0.&quot;</span><span class="p">)</span>
+
+        <span class="n">cash_received</span> <span class="o">=</span> <span class="n">parse_cash_received</span><span class="p">(</span><span class="n">cash_received_raw</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cash_received</span> <span class="o">&lt;</span> <span class="n">total</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Insufficient cash received (Q </span><span class="si">{</span><span class="n">cash_received</span><span class="si">}</span><span class="s2">). Total: Q </span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="n">change</span> <span class="o">=</span> <span class="p">(</span><span class="n">cash_received</span> <span class="o">-</span> <span class="n">total</span><span class="p">)</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0.01&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Cash movements</span>
+        <span class="n">register_cash_movements</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">cash_received</span><span class="p">,</span> <span class="n">change</span><span class="p">)</span>
+
+        <span class="c1">#Build PDF</span>
+        <span class="n">invoice_number</span> <span class="o">=</span> <span class="n">generate_invoice_number</span><span class="p">()</span>
+        <span class="n">pdf_bytes</span> <span class="o">=</span> <span class="n">build_invoice_pdf</span><span class="p">(</span>
+            <span class="n">invoice_number</span><span class="o">=</span><span class="n">invoice_number</span><span class="p">,</span>
+            <span class="n">cart</span><span class="o">=</span><span class="n">cart_for_pdf</span><span class="p">,</span>
+            <span class="n">total</span><span class="o">=</span><span class="n">total</span><span class="p">,</span>
+            <span class="n">cash_received</span><span class="o">=</span><span class="n">cash_received</span><span class="p">,</span>
+            <span class="n">change</span><span class="o">=</span><span class="n">change</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pdf_bytes</span><span class="p">,</span> <span class="n">invoice_number</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">change</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+product.views module
+====================
+
+.. automodule:: product.views
+   :members:
+   :show-inheritance:
+   :undoc-members:

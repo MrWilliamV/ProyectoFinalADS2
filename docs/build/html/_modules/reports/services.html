@@ -1,0 +1,600 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>reports.services &mdash; documentación de HealthAndHouse - 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=36c4ab74"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            HealthAndHouse
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">HealthAndHouse</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">HealthAndHouse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">reports.services</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para reports.services</h1><div class="highlight"><pre>
+<span></span><span class="c1"># reports/services.py (encabezado correcto)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">csv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.core.paginator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Paginator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Q</span><span class="p">,</span> <span class="n">Sum</span><span class="p">,</span> <span class="n">F</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">CashRegister.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">CashMovement</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">inventory.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Product</span><span class="p">,</span> <span class="n">InventoryMovement</span><span class="p">,</span> <span class="n">Location</span>  <span class="c1"># ajusta si Location está en otra app</span>
+
+<span class="c1"># PDF (ReportLab)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">reportlab.lib.pagesizes</span><span class="w"> </span><span class="kn">import</span> <span class="n">LETTER</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">reportlab.pdfgen</span><span class="w"> </span><span class="kn">import</span> <span class="n">canvas</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">reportlab.lib.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">inch</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_date</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fallback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fallback</span>
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_month_range</span><span class="p">(</span><span class="n">year</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">month</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">date</span><span class="p">,</span> <span class="n">date</span><span class="p">]:</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">month</span> <span class="o">==</span> <span class="mi">12</span><span class="p">:</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_periodic_slices</span><span class="p">(</span><span class="n">year</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">periodicity</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">date</span><span class="p">]]:</span>
+
+    <span class="n">periodicity</span> <span class="o">=</span> <span class="p">(</span><span class="n">periodicity</span> <span class="ow">or</span> <span class="s2">&quot;monthly&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">periodicity</span> <span class="o">==</span> <span class="s2">&quot;yearly&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="nb">str</span><span class="p">(</span><span class="n">year</span><span class="p">),</span> <span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">))]</span>
+    <span class="k">if</span> <span class="n">periodicity</span> <span class="o">==</span> <span class="s2">&quot;quarterly&quot;</span><span class="p">:</span>
+        <span class="n">quarters</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Q1&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;Q2&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="s2">&quot;Q3&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;Q4&quot;</span><span class="p">)]</span>
+        <span class="n">slices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">start_month</span><span class="p">,</span> <span class="n">qlabel</span> <span class="ow">in</span> <span class="n">quarters</span><span class="p">:</span>
+            <span class="n">s</span><span class="p">,</span> <span class="n">e</span> <span class="o">=</span> <span class="n">_month_range</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">start_month</span><span class="p">)</span>
+            <span class="c1"># fin de trimestre: sumar 2 meses al final</span>
+            <span class="n">last_month</span> <span class="o">=</span> <span class="n">start_month</span> <span class="o">+</span> <span class="mi">2</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">e</span> <span class="o">=</span> <span class="n">_month_range</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">last_month</span><span class="p">)</span>
+            <span class="n">slices</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">qlabel</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">slices</span>
+    <span class="k">if</span> <span class="n">periodicity</span> <span class="o">==</span> <span class="s2">&quot;monthly&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">13</span><span class="p">):</span>
+            <span class="n">s</span><span class="p">,</span> <span class="n">e</span> <span class="o">=</span> <span class="n">_month_range</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">m</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported periodicity (use &#39;monthly&#39;, &#39;quarterly&#39; or &#39;yearly&#39;).&quot;</span><span class="p">)</span>
+    <span class="c1">#Periodicity</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_as_decimal</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">val</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+
+<div class="viewcode-block" id="get_kardex_context">
+<a class="viewcode-back" href="../../api/reports/reports.services.html#reports.services.get_kardex_context">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_kardex_context</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the Kardex context for rendering of filters, rows, pagination.</span>
+
+<span class="sd">    :param request: HttpRequest with optional GET params</span>
+<span class="sd">    :return: dict context for render</span>
+<span class="sd">    :raises: ValueError for invalid dates/filters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">Product</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">InventoryMovement</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;page_obj&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="s2">&quot;Inventory models not available. Adjust imports in services.py.&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="n">period</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;period&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">product_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;product&quot;</span><span class="p">)</span>
+    <span class="n">location_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">)</span>
+    <span class="n">page</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;page&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+
+    <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">period</span> <span class="ow">and</span> <span class="n">period</span> <span class="o">!=</span> <span class="s2">&quot;custom&quot;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">period</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+            <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span> <span class="o">=</span> <span class="n">_month_range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid period format. Use YYYY-MM or &#39;custom&#39;.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">start_date</span> <span class="o">=</span> <span class="n">_parse_date</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">date</span><span class="p">(</span><span class="n">today</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">today</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">end_date</span> <span class="o">=</span> <span class="n">_parse_date</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">today</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">start_date</span> <span class="ow">and</span> <span class="n">end_date</span> <span class="ow">and</span> <span class="n">start_date</span> <span class="o">&gt;</span> <span class="n">end_date</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Start date cannot be greater than end date.&quot;</span><span class="p">)</span>
+
+    <span class="n">qs</span> <span class="o">=</span> <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">product_id</span><span class="p">:</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">product_id</span><span class="o">=</span><span class="n">product_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">location_id</span><span class="p">:</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location_id</span><span class="o">=</span><span class="n">location_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">start_date</span><span class="p">:</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">date__gte</span><span class="o">=</span><span class="n">start_date</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">end_date</span><span class="p">:</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">date__lte</span><span class="o">=</span><span class="n">end_date</span><span class="p">)</span>
+
+    <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;product&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">)</span>
+
+    <span class="n">balance_qty</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">balance_cost</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">rows</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">mov</span> <span class="ow">in</span> <span class="n">qs</span><span class="p">:</span>
+        <span class="n">qty_in</span> <span class="o">=</span> <span class="n">_as_decimal</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;qty_in&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">qty_out</span> <span class="o">=</span> <span class="n">_as_decimal</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;qty_out&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">unit_cost</span> <span class="o">=</span> <span class="n">_as_decimal</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;unit_cost&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">unit_cost</span> <span class="o">*</span> <span class="p">(</span><span class="n">qty_in</span> <span class="ow">or</span> <span class="n">qty_out</span><span class="p">)</span>
+
+        <span class="n">balance_qty</span> <span class="o">+=</span> <span class="n">qty_in</span> <span class="o">-</span> <span class="n">qty_out</span>
+        <span class="n">balance_cost</span> <span class="o">+=</span> <span class="p">(</span><span class="n">qty_in</span> <span class="o">*</span> <span class="n">unit_cost</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">qty_out</span> <span class="o">*</span> <span class="n">unit_cost</span><span class="p">)</span>
+
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="s2">&quot;ref&quot;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;detail&quot;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;detail&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;product&quot;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;product&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;qty_in&quot;</span><span class="p">:</span> <span class="n">qty_in</span><span class="p">,</span>
+            <span class="s2">&quot;qty_out&quot;</span><span class="p">:</span> <span class="n">qty_out</span><span class="p">,</span>
+            <span class="s2">&quot;unit_cost&quot;</span><span class="p">:</span> <span class="n">unit_cost</span><span class="p">,</span>
+            <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+            <span class="s2">&quot;balance_qty&quot;</span><span class="p">:</span> <span class="n">balance_qty</span><span class="p">,</span>
+            <span class="s2">&quot;balance_cost&quot;</span><span class="p">:</span> <span class="n">balance_cost</span><span class="p">,</span>
+        <span class="p">})</span>
+
+    <span class="n">paginator</span> <span class="o">=</span> <span class="n">Paginator</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+    <span class="n">page_obj</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">get_page</span><span class="p">(</span><span class="n">page</span><span class="p">)</span>
+
+    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;period&quot;</span><span class="p">:</span> <span class="n">period</span><span class="p">,</span>
+            <span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="n">start_date</span><span class="p">,</span>
+            <span class="s2">&quot;end&quot;</span><span class="p">:</span> <span class="n">end_date</span><span class="p">,</span>
+            <span class="s2">&quot;product&quot;</span><span class="p">:</span> <span class="n">product_id</span><span class="p">,</span>
+            <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">location_id</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="n">page_obj</span><span class="o">.</span><span class="n">object_list</span><span class="p">,</span>
+        <span class="s2">&quot;page_obj&quot;</span><span class="p">:</span> <span class="n">page_obj</span><span class="p">,</span>
+        <span class="s2">&quot;totals&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;balance_qty&quot;</span><span class="p">:</span> <span class="n">balance_qty</span><span class="p">,</span>
+            <span class="s2">&quot;balance_cost&quot;</span><span class="p">:</span> <span class="n">balance_cost</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">context</span></div>
+
+
+<div class="viewcode-block" id="get_cash_report_result">
+<a class="viewcode-back" href="../../api/reports/reports.services.html#reports.services.get_cash_report_result">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_cash_report_result</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a render context or CSV export for cash report.</span>
+
+<span class="sd">    :param request: HttpRequest with GET params (start_date, end_date, cashier, export, page).</span>
+<span class="sd">    :return: dict with either  for rendering.</span>
+<span class="sd">    :raises: ValueError for invalid dates/filters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">start_date</span> <span class="o">=</span> <span class="n">_parse_date</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;start_date&quot;</span><span class="p">))</span>
+    <span class="n">end_date</span> <span class="o">=</span> <span class="n">_parse_date</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;end_date&quot;</span><span class="p">))</span>
+    <span class="n">cashier</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cashier&quot;</span><span class="p">)</span>
+    <span class="n">do_export</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;export&quot;</span><span class="p">)</span>
+    <span class="n">page</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;page&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">start_date</span> <span class="ow">and</span> <span class="n">end_date</span> <span class="ow">and</span> <span class="n">start_date</span> <span class="o">&gt;</span> <span class="n">end_date</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Start date cannot be greater than end date.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">CashMovement</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">base_context</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;start_date&quot;</span><span class="p">:</span> <span class="n">start_date</span><span class="p">,</span> <span class="s2">&quot;end_date&quot;</span><span class="p">:</span> <span class="n">end_date</span><span class="p">,</span> <span class="s2">&quot;cashier&quot;</span><span class="p">:</span> <span class="n">cashier</span><span class="p">},</span>
+            <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;totals&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;net&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">},</span>
+            <span class="s2">&quot;page_obj&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="s2">&quot;Cash models not available. Adjust imports in services.py.&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">do_export</span> <span class="o">==</span> <span class="s2">&quot;csv&quot;</span><span class="p">:</span>
+            <span class="n">csv_content</span> <span class="o">=</span> <span class="n">_build_csv_from_rows</span><span class="p">([],</span> <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Date&quot;</span><span class="p">,</span> <span class="s2">&quot;Cashier&quot;</span><span class="p">,</span> <span class="s2">&quot;Type&quot;</span><span class="p">,</span> <span class="s2">&quot;Amount&quot;</span><span class="p">,</span> <span class="s2">&quot;Note&quot;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">csv_content</span><span class="p">,</span> <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">_csv_name</span><span class="p">(</span><span class="s2">&quot;cash&quot;</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">)}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="n">base_context</span><span class="p">}</span>
+
+    <span class="n">qs</span> <span class="o">=</span> <span class="n">CashMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;session&quot;</span><span class="p">,</span> <span class="s2">&quot;user&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">start_date</span><span class="p">:</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">date__date__gte</span><span class="o">=</span><span class="n">start_date</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">end_date</span><span class="p">:</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">date__date__lte</span><span class="o">=</span><span class="n">end_date</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cashier</span><span class="p">:</span>
+        <span class="c1"># admite id o username</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Q</span><span class="p">(</span><span class="n">user__username__icontains</span><span class="o">=</span><span class="n">cashier</span><span class="p">)</span> <span class="o">|</span> <span class="n">Q</span><span class="p">(</span><span class="n">user__id__icontains</span><span class="o">=</span><span class="n">cashier</span><span class="p">))</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">total_in</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">total_out</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">for</span> <span class="n">mov</span> <span class="ow">in</span> <span class="n">qs</span><span class="p">:</span>
+        <span class="n">amount</span> <span class="o">=</span> <span class="n">_as_decimal</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;amount&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">mtype</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;movement_type&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">mtype</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;IN&quot;</span><span class="p">:</span>
+            <span class="n">total_in</span> <span class="o">+=</span> <span class="n">amount</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">total_out</span> <span class="o">+=</span> <span class="n">amount</span>
+
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="s2">&quot;cashier&quot;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;username&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">mtype</span><span class="p">,</span>
+            <span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="n">amount</span><span class="p">,</span>
+            <span class="s2">&quot;note&quot;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mov</span><span class="p">,</span> <span class="s2">&quot;note&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+        <span class="p">})</span>
+
+    <span class="n">net</span> <span class="o">=</span> <span class="n">total_in</span> <span class="o">-</span> <span class="n">total_out</span>
+
+    <span class="c1"># Export CSV si se solicita</span>
+    <span class="k">if</span> <span class="n">do_export</span> <span class="o">==</span> <span class="s2">&quot;csv&quot;</span><span class="p">:</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Date&quot;</span><span class="p">,</span> <span class="s2">&quot;Cashier&quot;</span><span class="p">,</span> <span class="s2">&quot;Type&quot;</span><span class="p">,</span> <span class="s2">&quot;Amount&quot;</span><span class="p">,</span> <span class="s2">&quot;Note&quot;</span><span class="p">]</span>
+        <span class="n">csv_rows</span> <span class="o">=</span> <span class="p">[[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;cashier&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;amount&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;note&quot;</span><span class="p">]]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">]</span>
+        <span class="n">csv_content</span> <span class="o">=</span> <span class="n">_build_csv_from_rows</span><span class="p">(</span><span class="n">csv_rows</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">csv_content</span><span class="p">,</span>
+            <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">_csv_name</span><span class="p">(</span><span class="s2">&quot;cash&quot;</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">),</span>
+        <span class="p">}</span>
+
+    <span class="n">paginator</span> <span class="o">=</span> <span class="n">Paginator</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+    <span class="n">page_obj</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">get_page</span><span class="p">(</span><span class="n">page</span><span class="p">)</span>
+
+    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;start_date&quot;</span><span class="p">:</span> <span class="n">start_date</span><span class="p">,</span> <span class="s2">&quot;end_date&quot;</span><span class="p">:</span> <span class="n">end_date</span><span class="p">,</span> <span class="s2">&quot;cashier&quot;</span><span class="p">:</span> <span class="n">cashier</span><span class="p">},</span>
+        <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="n">page_obj</span><span class="o">.</span><span class="n">object_list</span><span class="p">,</span>
+        <span class="s2">&quot;page_obj&quot;</span><span class="p">:</span> <span class="n">page_obj</span><span class="p">,</span>
+        <span class="s2">&quot;totals&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">total_in</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">total_out</span><span class="p">,</span> <span class="s2">&quot;net&quot;</span><span class="p">:</span> <span class="n">net</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="n">context</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="get_inventory_report_result">
+<a class="viewcode-back" href="../../api/reports/reports.services.html#reports.services.get_inventory_report_result">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_inventory_report_result</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return inventory summary by period.</span>
+
+<span class="sd">    :param request: HttpRequest with GET params (year, periodicity, location, product, action, export).</span>
+<span class="sd">    :return: dict for render or export</span>
+<span class="sd">    :raises: ValueError when filters/periodicity are invalid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">year_str</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;year&quot;</span><span class="p">)</span>
+    <span class="n">periodicity</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;periodicity&quot;</span><span class="p">,</span> <span class="s2">&quot;monthly&quot;</span><span class="p">)</span>
+    <span class="n">location_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">)</span>
+    <span class="n">product_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;product&quot;</span><span class="p">)</span>
+    <span class="n">action</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;action&quot;</span><span class="p">)</span>
+    <span class="n">export_format</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;export&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">year_str</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">year_str</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid or missing &#39;year&#39; parameter.&quot;</span><span class="p">)</span>
+    <span class="n">year</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">year_str</span><span class="p">)</span>
+
+    <span class="n">slices</span> <span class="o">=</span> <span class="n">_periodic_slices</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">periodicity</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">InventoryMovement</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rows</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;year&quot;</span><span class="p">:</span> <span class="n">year</span><span class="p">,</span> <span class="s2">&quot;periodicity&quot;</span><span class="p">:</span> <span class="n">periodicity</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">location_id</span><span class="p">,</span> <span class="s2">&quot;product&quot;</span><span class="p">:</span> <span class="n">product_id</span><span class="p">},</span>
+            <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
+            <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="s2">&quot;Inventory models not available. Adjust imports in services.py.&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;export&quot;</span> <span class="ow">and</span> <span class="n">export_format</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span> <span class="s2">&quot;pdf&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">export_format</span> <span class="o">==</span> <span class="s2">&quot;csv&quot;</span><span class="p">:</span>
+                <span class="n">filename</span><span class="p">,</span> <span class="n">csv_content</span> <span class="o">=</span> <span class="n">build_inventory_csv</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">periodicity</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="s2">&quot;export&quot;</span><span class="p">,</span> <span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span> <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">csv_content</span><span class="p">}</span>
+            <span class="n">filename</span><span class="p">,</span> <span class="n">pdf_bytes</span> <span class="o">=</span> <span class="n">build_inventory_pdf</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">periodicity</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="s2">&quot;export&quot;</span><span class="p">,</span> <span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="s2">&quot;pdf&quot;</span><span class="p">,</span> <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;content_bytes&quot;</span><span class="p">:</span> <span class="n">pdf_bytes</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="s2">&quot;filter&quot;</span><span class="p">,</span> <span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="n">context</span><span class="p">}</span>
+
+    <span class="n">base_qs</span> <span class="o">=</span> <span class="n">InventoryMovement</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">product_id</span><span class="p">:</span>
+        <span class="n">base_qs</span> <span class="o">=</span> <span class="n">base_qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">product_id</span><span class="o">=</span><span class="n">product_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">location_id</span><span class="p">:</span>
+        <span class="n">base_qs</span> <span class="o">=</span> <span class="n">base_qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">location_id</span><span class="o">=</span><span class="n">location_id</span><span class="p">)</span>
+
+    <span class="n">rows</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">start_d</span><span class="p">,</span> <span class="n">end_d</span> <span class="ow">in</span> <span class="n">slices</span><span class="p">:</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">base_qs</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">date__date__gte</span><span class="o">=</span><span class="n">start_d</span><span class="p">,</span> <span class="n">date__date__lte</span><span class="o">=</span><span class="n">end_d</span><span class="p">)</span>
+
+        <span class="n">qty_in</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;qty_in&quot;</span><span class="p">))[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="n">qty_out</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;qty_out&quot;</span><span class="p">))[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="mi">0</span>
+
+        <span class="n">val_in</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;qty_in&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;unit_cost&quot;</span><span class="p">)))[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="n">val_out</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;qty_out&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">F</span><span class="p">(</span><span class="s2">&quot;unit_cost&quot;</span><span class="p">)))[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="mi">0</span>
+
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;period&quot;</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+            <span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="n">start_d</span><span class="p">,</span>
+            <span class="s2">&quot;end&quot;</span><span class="p">:</span> <span class="n">end_d</span><span class="p">,</span>
+            <span class="s2">&quot;qty_in&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">qty_in</span><span class="p">),</span>
+            <span class="s2">&quot;qty_out&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">qty_out</span><span class="p">),</span>
+            <span class="s2">&quot;net_qty&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">qty_in</span><span class="p">)</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">qty_out</span><span class="p">),</span>
+            <span class="s2">&quot;value_in&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">val_in</span><span class="p">),</span>
+            <span class="s2">&quot;value_out&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">val_out</span><span class="p">),</span>
+            <span class="s2">&quot;net_value&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">val_in</span><span class="p">)</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">val_out</span><span class="p">),</span>
+        <span class="p">})</span>
+
+    <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;export&quot;</span> <span class="ow">and</span> <span class="n">export_format</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span> <span class="s2">&quot;pdf&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">export_format</span> <span class="o">==</span> <span class="s2">&quot;csv&quot;</span><span class="p">:</span>
+            <span class="n">filename</span><span class="p">,</span> <span class="n">csv_content</span> <span class="o">=</span> <span class="n">build_inventory_csv</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">periodicity</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="s2">&quot;export&quot;</span><span class="p">,</span> <span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span> <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">csv_content</span><span class="p">}</span>
+        <span class="n">filename</span><span class="p">,</span> <span class="n">pdf_bytes</span> <span class="o">=</span> <span class="n">build_inventory_pdf</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">periodicity</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="s2">&quot;export&quot;</span><span class="p">,</span> <span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="s2">&quot;pdf&quot;</span><span class="p">,</span> <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;content_bytes&quot;</span><span class="p">:</span> <span class="n">pdf_bytes</span><span class="p">}</span>
+
+    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;year&quot;</span><span class="p">:</span> <span class="n">year</span><span class="p">,</span> <span class="s2">&quot;periodicity&quot;</span><span class="p">:</span> <span class="n">periodicity</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">location_id</span><span class="p">,</span> <span class="s2">&quot;product&quot;</span><span class="p">:</span> <span class="n">product_id</span><span class="p">},</span>
+        <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
+        <span class="s2">&quot;totals&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;qty_in&quot;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;qty_in&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">),</span>
+            <span class="s2">&quot;qty_out&quot;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;qty_out&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">),</span>
+            <span class="s2">&quot;net_qty&quot;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;net_qty&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">),</span>
+            <span class="s2">&quot;value_in&quot;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;value_in&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">),</span>
+            <span class="s2">&quot;value_out&quot;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;value_out&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">),</span>
+            <span class="s2">&quot;net_value&quot;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;net_value&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="s2">&quot;filter&quot;</span><span class="p">,</span> <span class="s2">&quot;export&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="n">context</span><span class="p">}</span></div>
+
+
+
+
+
+<div class="viewcode-block" id="build_inventory_csv">
+<a class="viewcode-back" href="../../api/reports/reports.services.html#reports.services.build_inventory_csv">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_inventory_csv</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">year</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">periodicity</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build CSV content for inventory summary rows.</span>
+
+<span class="sd">    :param rows: iterable of dict rows as returned by get_inventory_report_result()</span>
+<span class="sd">    :param year: report year</span>
+<span class="sd">    :param periodicity: &#39;monthly&#39; | &#39;quarterly&#39; | &#39;yearly&#39;</span>
+<span class="sd">    :return: (filename, csv_content)</span>
+<span class="sd">    :raises: -</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Period&quot;</span><span class="p">,</span> <span class="s2">&quot;Start&quot;</span><span class="p">,</span> <span class="s2">&quot;End&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Qty In&quot;</span><span class="p">,</span> <span class="s2">&quot;Qty Out&quot;</span><span class="p">,</span> <span class="s2">&quot;Net Qty&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Value In&quot;</span><span class="p">,</span> <span class="s2">&quot;Value Out&quot;</span><span class="p">,</span> <span class="s2">&quot;Net Value&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;period&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qty_in&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qty_out&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;net_qty&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value_in&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value_out&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;net_value&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span>
+    <span class="p">]</span>
+    <span class="n">csv_content</span> <span class="o">=</span> <span class="n">_build_csv_from_rows</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;inventory_</span><span class="si">{</span><span class="n">periodicity</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">.csv&quot;</span>
+    <span class="k">return</span> <span class="n">filename</span><span class="p">,</span> <span class="n">csv_content</span></div>
+
+
+
+<div class="viewcode-block" id="build_inventory_pdf">
+<a class="viewcode-back" href="../../api/reports/reports.services.html#reports.services.build_inventory_pdf">[documentos]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_inventory_pdf</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">year</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">periodicity</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build PDF bytes for inventory summary rows (simple tabular layout).</span>
+
+<span class="sd">    :param rows: iterable of dict rows</span>
+<span class="sd">    :param year: report year</span>
+<span class="sd">    :param periodicity: &#39;monthly&#39; | &#39;quarterly&#39; | &#39;yearly&#39;</span>
+<span class="sd">    :return: filename, pdf</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">canvas</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">LETTER</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;ReportLab is required to generate PDF. Install reportlab package.&quot;</span><span class="p">)</span>
+
+    <span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">canvas</span><span class="o">.</span><span class="n">Canvas</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">pagesize</span><span class="o">=</span><span class="n">LETTER</span><span class="p">)</span>
+
+    <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">LETTER</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">inch</span> <span class="o">*</span> <span class="mf">0.75</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">height</span> <span class="o">-</span> <span class="n">inch</span> <span class="o">*</span> <span class="mf">1.0</span>
+
+    <span class="c1"># Título</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica-Bold&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Inventory report - </span><span class="si">{</span><span class="n">periodicity</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">-=</span> <span class="mi">18</span>
+
+    <span class="c1"># Encabezados</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Period&quot;</span><span class="p">,</span> <span class="s2">&quot;Start&quot;</span><span class="p">,</span> <span class="s2">&quot;End&quot;</span><span class="p">,</span> <span class="s2">&quot;Qty In&quot;</span><span class="p">,</span> <span class="s2">&quot;Qty Out&quot;</span><span class="p">,</span> <span class="s2">&quot;Net Qty&quot;</span><span class="p">,</span> <span class="s2">&quot;Value In&quot;</span><span class="p">,</span> <span class="s2">&quot;Value Out&quot;</span><span class="p">,</span> <span class="s2">&quot;Net Value&quot;</span><span class="p">]</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica-Bold&quot;</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">-=</span> <span class="mi">6</span>
+    <span class="n">_draw_pdf_row</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">-=</span> <span class="mi">14</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">setFont</span><span class="p">(</span><span class="s2">&quot;Helvetica&quot;</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+
+    <span class="c1"># Filas</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">_draw_pdf_row</span><span class="p">(</span>
+            <span class="n">c</span><span class="p">,</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="n">y</span><span class="p">,</span>
+            <span class="p">[</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;period&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)),</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)),</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)),</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qty_in&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qty_out&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;net_qty&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value_in&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value_out&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;net_value&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">y</span> <span class="o">-=</span> <span class="mi">14</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">inch</span><span class="p">:</span>  <span class="c1"># nueva página</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">showPage</span><span class="p">()</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">height</span> <span class="o">-</span> <span class="n">inch</span>
+
+    <span class="n">c</span><span class="o">.</span><span class="n">showPage</span><span class="p">()</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="n">pdf_bytes</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+    <span class="n">buffer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;inventory_</span><span class="si">{</span><span class="n">periodicity</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">.pdf&quot;</span>
+    <span class="k">return</span> <span class="n">filename</span><span class="p">,</span> <span class="n">pdf_bytes</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_draw_pdf_row</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">cells</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">col_widths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    draw a single row of text cells in the PDF.</span>
+
+<span class="sd">    :param c: reportlab canvas</span>
+<span class="sd">    :param x: start x</span>
+<span class="sd">    :param y: baseline y</span>
+<span class="sd">    :param cells: list of strings</span>
+<span class="sd">    :param col_widths: optional custom widths</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    :raises: -</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">col_widths</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">col_widths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">90</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">55</span><span class="p">,</span> <span class="mi">55</span><span class="p">,</span> <span class="mi">55</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">70</span><span class="p">]</span>
+    <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cells</span><span class="p">):</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">drawString</span><span class="p">(</span><span class="n">cx</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+        <span class="n">cx</span> <span class="o">+=</span> <span class="n">col_widths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">col_widths</span><span class="p">)</span> <span class="k">else</span> <span class="mi">60</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_csv_from_rows</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Internal: build CSV string in-memory.</span>
+
+<span class="sd">    :param rows: iterable of row iterables</span>
+<span class="sd">    :param headers: optional header list</span>
+<span class="sd">    :return: CSV content as string</span>
+<span class="sd">    :raises: -</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">newline</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">headers</span><span class="p">:</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_csv_name</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start_d</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">],</span> <span class="n">end_d</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    make a date ranged filename.</span>
+
+<span class="sd">    :param prefix: file prefix</span>
+<span class="sd">    :param start_d: start date</span>
+<span class="sd">    :param end_d: end date</span>
+<span class="sd">    :return: filename string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">start_d</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">if</span> <span class="n">start_d</span> <span class="k">else</span> <span class="s2">&quot;NA&quot;</span>
+    <span class="n">e</span> <span class="o">=</span> <span class="n">end_d</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">if</span> <span class="n">end_d</span> <span class="k">else</span> <span class="s2">&quot;NA&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.csv&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor .</p>
+  </div>
+
+  Compilado con <a href="https://www.sphinx-doc.org/">Sphinx</a> usando un
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    proporcionado por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

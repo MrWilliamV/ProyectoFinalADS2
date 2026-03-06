@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.12",
+    "tailwindcss": "^4.1.12"
+  },
+  "scripts": {
+    "watch:css": "npx @tailwindcss/cli -i ./HealthAndHouse/static/src/styles.css -o ./HealthAndHouse/static/dist/styles.css --watch"
+  },
+  "devDependencies": {
+    "daisyui": "^5.0.51",
+    "i": "^0.3.7"
+  }
+}

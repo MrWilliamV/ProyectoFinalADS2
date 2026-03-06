@@ -1,0 +1,7 @@
+product.models module
+=====================
+
+.. automodule:: product.models
+   :members:
+   :show-inheritance:
+   :undoc-members:

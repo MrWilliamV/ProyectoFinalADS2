@@ -17,21 +17,23 @@ UNIDADES_CHOICES = [
 
 MOV_CHOICES = [
     ("PUR", "Entrada (Compra)"),
+    ("ADJIN", "Entrada (Ajuste)"),
+    ("SAL", "Salida"),
+    ("ADJOUT", "Salida (Ajuste)"),
 ]
 
 class InventoryMoveForm(forms.Form):
     """
-    movement_type (CharField): Hidden field; must be 'PUR' or 'ADJIN'.
-    location (ModelChoiceField): Destination location for the entry.
-    product (ModelChoiceField): Product being received.
-    lot_code (CharField): Lot identifier associated with the product.
-    expire_date (DateField): Expiration date for the lot.
-    quantity (DecimalField): Received quantity (min 0.01).
-    unit_price_in (DecimalField): Unit cost for the incoming stock.
-    supplier (ModelChoiceField): Supplier associated with the purchase.
-    descripcion (CharField): Free-text description for the transaction.
+    Formulario único para entradas y salidas de inventario.
+    - Entradas: requieren lote, vencimiento, precio y proveedor.
+    - Salidas: no requieren esos campos.
     """
-    movement_type = forms.CharField(initial="PUR", widget=forms.HiddenInput())
+
+    movement_type = forms.ChoiceField(
+        choices=MOV_CHOICES,
+        initial="PUR",
+        widget=forms.HiddenInput(),
+    )
 
     location = forms.ModelChoiceField(
         queryset=Location.objects.none(),
@@ -49,14 +51,14 @@ class InventoryMoveForm(forms.Form):
 
     lot_code = forms.CharField(
         max_length=40,
-        label="Código de lote",
-        required=True,
+        label="Codigo de lote",
+        required=False,
         widget=forms.TextInput(attrs={"class": "input input-bordered w-full"})
     )
 
     expire_date = forms.DateField(
         label="Fecha de vencimiento",
-        required=True,
+        required=False,
         widget=forms.DateInput(attrs={"type": "date", "class": "input input-bordered w-full"})
     )
 
@@ -73,14 +75,24 @@ class InventoryMoveForm(forms.Form):
         decimal_places=2,
         min_value=Decimal("0.01"),
         label="Valor unitario",
+        required=False,
         widget=forms.NumberInput(attrs={"class": "input input-bordered w-full"})
     )
 
     supplier = forms.ModelChoiceField(
         queryset=Supplier.objects.all().order_by("name"),
         label="Proveedor",
-        required=True,
+        required=False,
         widget=forms.Select(attrs={"class": "select select-bordered w-full"})
+    )
+
+    # Se deja para no romper la vista actual, que todavía lee cd["unidad"]
+    unidad = forms.ChoiceField(
+        choices=[("UND", "Unidad"), ("ML", "Mililitro"), ("MG", "Miligramo"),
+                 ("GR", "Gramo"), ("KG", "Kilogramo"), ("LT", "Litro"), ("CJ", "Caja")],
+        initial="UND",
+        required=False,
+        widget=forms.HiddenInput()
     )
 
     descripcion = forms.CharField(
@@ -93,61 +105,89 @@ class InventoryMoveForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.fields["location"].queryset = Location.objects.all().order_by("name")
         self.fields["product"].queryset = (
             Product.objects
-            .filter(active=True)
             .select_related("measure_unit")
             .order_by("name")
         )
+
         self.fields["expire_date"].widget.attrs["min"] = date.today().isoformat()
 
     def clean(self):
         data = super().clean()
 
         movement_type = data.get("movement_type")
-        if movement_type not in ["PUR", "ADJIN"]:
-            self.add_error("movement_type", "Solo se permiten entradas de inventario.")
-
-        if not data.get("unit_price_in"):
-            self.add_error("unit_price_in", "Requerido para entradas.")
-        if not data.get("expire_date"):
-            self.add_error("expire_date", "Requerido para entradas.")
-        if not data.get("lot_code"):
-            self.add_error("lot_code", "Requerido para identificar el lote.")
-        if not data.get("supplier"):
-            self.add_error("supplier", "Selecciona un proveedor.")
-
-        expire_date = data.get("expire_date")
-        if expire_date and expire_date <= date.today():
-            self.add_error("expire_date", "La fecha de vencimiento debe ser mayor a la fecha actual.")
-
         product = data.get("product")
         location = data.get("location")
         quantity = data.get("quantity")
+        expire_date = data.get("expire_date")
 
-        if product and not product.active:
-            self.add_error("product", "Solo se permiten productos activos.")
+        entradas = ["PUR", "ADJIN"]
+        salidas = ["SAL", "ADJOUT"]
 
-        if product and location and quantity:
-            try:
-                inv = Inventory.objects.get(product=product, location=location)
-                max_stock = inv.max_stock or Decimal("0")
-                current = inv.quantity or Decimal("0")
+        if movement_type not in entradas + salidas:
+            self.add_error("movement_type", "Tipo de movimiento inválido.")
 
-                if max_stock > 0 and current + quantity > max_stock:
-                    remaining = max_stock - current
-                    if remaining < 0:
-                        remaining = Decimal("0.00")
+        # =========================
+        # VALIDACIONES DE ENTRADA
+        # =========================
+        if movement_type in entradas:
+            if not data.get("unit_price_in"):
+                self.add_error("unit_price_in", "Requerido para entradas.")
+            if not data.get("expire_date"):
+                self.add_error("expire_date", "Requerido para entradas.")
+            if not data.get("lot_code"):
+                self.add_error("lot_code", "Requerido para identificar el lote.")
+            if not data.get("supplier"):
+                self.add_error("supplier", "Selecciona un proveedor.")
 
+            if expire_date and expire_date <= date.today():
+                self.add_error(
+                    "expire_date",
+                    "La fecha de vencimiento debe ser mayor a la fecha actual."
+                )
+
+            if product and location and quantity:
+                try:
+                    inv = Inventory.objects.get(product=product, location=location)
+                    max_stock = inv.max_stock or Decimal("0")
+                    current = inv.quantity or Decimal("0")
+
+                    if max_stock > 0 and current + quantity > max_stock:
+                        remaining = max_stock - current
+                        if remaining < 0:
+                            remaining = Decimal("0.00")
+
+                        self.add_error(
+                            "quantity",
+                            f"La entrada excede el máximo en {location.name}. "
+                            f"Máximo: {max_stock}, actual: {current}. "
+                            f"Puedes ingresar como mucho {remaining}."
+                        )
+                except Inventory.DoesNotExist:
+                    pass
+
+        # =========================
+        # VALIDACIONES DE SALIDA
+        # =========================
+        if movement_type in salidas:
+            if product and location and quantity:
+                try:
+                    inv = Inventory.objects.get(product=product, location=location)
+                    current = inv.quantity or Decimal("0")
+
+                    if quantity > current:
+                        self.add_error(
+                            "quantity",
+                            f"Stock insuficiente en {location.name}. Disponible: {current}."
+                        )
+                except Inventory.DoesNotExist:
                     self.add_error(
                         "quantity",
-                        f"La entrada excede el máximo en {location.name}. "
-                        f"Máximo: {max_stock}, actual: {current}. "
-                        f"Puedes ingresar como mucho {remaining}."
+                        f"No existe inventario registrado para {product} en {location}."
                     )
-            except Inventory.DoesNotExist:
-                pass
 
         return data
 

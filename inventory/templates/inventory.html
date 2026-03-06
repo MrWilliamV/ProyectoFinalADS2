@@ -61,7 +61,12 @@
 
             <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {% csrf_token %}
-                <input type="hidden" name="movement_type" value="PUR">
+                <select name="movement_type" class="select select-bordered w-full">
+                    <option value="PUR">Entrada (Compra)</option>
+                    <option value="ADJIN">Entrada (Ajuste)</option>
+                    <option value="SAL">Salida</option>
+                    <option value="ADJOUT">Salida (Ajuste)</option>
+                </select>
                 <input type="hidden" name="product" value="{{ product_id }}">
                 <input type="hidden" name="location" value="{{ location_id }}">
 

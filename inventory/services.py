@@ -653,3 +653,104 @@ def registrar_transferencia_lote(
         "lot_stock_from": ls_from,
         "lot_stock_to": ls_to,
     }
+
+@transaction.atomic
+def registrar_salida_inventario(
+    *,
+    user,
+    product,
+    location,
+    quantity,
+    description,
+    movement_type="ADJOUT",
+):
+    now = timezone.now()
+    today = timezone.localdate()
+    quantity = _q2(quantity)
+
+    if movement_type not in ["SAL", "ADJOUT"]:
+        raise ValueError("Tipo de movimiento inválido para salida.")
+
+    if quantity <= 0:
+        raise ValueError("La cantidad debe ser mayor a cero.")
+
+    cfg = InventoryConfig.objects.select_for_update().filter(is_active=True).first()
+    if not cfg:
+        raise ValueError("No hay periodo contable activo. Configúralo antes de operar.")
+
+    inv = Inventory.objects.select_for_update().filter(
+        product=product,
+        location=location,
+    ).first()
+
+    if not inv or (inv.quantity or Decimal("0.00")) < quantity:
+        raise ValueError("Stock insuficiente en inventario.")
+
+    avg_cost = _q4(inv.avg_unit_cost or Decimal("0.0000"))
+    restante = quantity
+
+    lotes = (
+        LotStock.objects
+        .select_for_update()
+        .select_related("lot", "lot__product")
+        .filter(
+            location=location,
+            lot__product=product,
+            quantity__gt=0,
+        )
+        .order_by("lot__expire_date", "lot_id")
+    )
+
+    movimientos = []
+    unit_code = getattr(getattr(product, "measure_unit", None), "code", None) or "UND"
+
+    for ls in lotes:
+        if restante <= 0:
+            break
+
+        tomar = min(_q2(ls.quantity), restante)
+        if tomar <= 0:
+            continue
+
+        ls.quantity = _q2(ls.quantity - tomar)
+        ls.save(update_fields=["quantity"])
+
+        inv.quantity = _q2(inv.quantity - tomar)
+        inv.updated_at = now
+        inv.save(update_fields=["quantity", "updated_at"])
+
+        salida_valor = _q4(tomar * avg_cost)
+        saldo_valor = _q4(inv.quantity * avg_cost)
+
+        mov = InventoryMovement.objects.create(
+            product=product,
+            location=location,
+            lot=ls.lot,
+            fecha=now,
+            tipo_movimiento=movement_type,
+            descripcion=description,
+            valor_unitario=avg_cost,
+            entrada_cantidad=Decimal("0.00"),
+            entrada_valor=Decimal("0.0000"),
+            salida_cantidad=tomar,
+            salida_valor=salida_valor,
+            saldo_cantidad=inv.quantity,
+            saldo_valor=saldo_valor,
+            proveedor=None,
+            unidad=unit_code,
+            created_by=(user if getattr(user, "is_authenticated", False) else None),
+            period=cfg,
+        )
+        movimientos.append(mov)
+        restante = _q2(restante - tomar)
+
+    if restante > 0:
+        raise ValueError("No fue posible completar la salida con los lotes disponibles.")
+
+    return {
+        "inventory": inv,
+        "movements": movimientos,
+        "period": cfg,
+        "unit": unit_code,
+        "quantity": quantity,
+    }

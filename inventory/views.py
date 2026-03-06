@@ -20,7 +20,8 @@ from HealthAndHouse.auth_rol import has_role
 from inventory.forms import InventoryMoveForm, InventoryConfigForm
 from .models import Inventory, InventoryMovement, ProductLot, LotStock, Product, Location, InventoryConfig, \
     TIPO_MOVIMIENTO_INICIAL
-from .services import close_period_snapshot, registrar_entrada_compra, registrar_transferencia_lote
+from .services import close_period_snapshot, registrar_entrada_compra, registrar_transferencia_lote, \
+    registrar_salida_inventario
 
 Q2 = Decimal("0.01")
 Q4 = Decimal("0.0001")
@@ -93,7 +94,18 @@ def inventory_movement_view(request):
                     return redirect("see_inventory")
 
                 elif movement_type in ["SAL", "ADJOUT"]:
-                    messages.warning(request, "La lógica para salidas no está implementada.")
+                    result = registrar_salida_inventario(
+                        user=request.user,
+                        product=product,
+                        location=location,
+                        quantity=quantity,
+                        description=cd["descripcion"],
+                        movement_type=movement_type,
+                    )
+                    messages.success(
+                        request,
+                        f"Salida registrada. Saldo actual: {result['inventory'].quantity} {result['unit']}."
+                    )
                     return redirect("see_inventory")
 
             except ValueError as e:

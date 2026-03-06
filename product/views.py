@@ -11,8 +11,7 @@ from django.contrib import messages
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from .forms import ProductForm, MeasureUnitForm, CategoryForm, BrandForm
-from django.db.models import Max
-import re
+from inventory.services import initialize_inventory_for_product
 
 
 @login_required(login_url='login')
@@ -53,14 +52,6 @@ def form_create_product(request):
 @login_required
 @has_role("ADMINISTRADOR", "JEFE_ALMACEN")
 def create_product(request):
-    """
-        Creates a product delegating all business logic to services.
-        On errors, re-renders the same template with messages.
-
-        :param request: HttpRequest (expects POST data)
-        :return: HttpResponse redirect to 'product_list' or render 'create_product.html'
-        :raises: ValueError for validation errors raised by service.
-    """
     if request.method == "POST":
         form = ProductForm(request.POST)
 
@@ -98,57 +89,18 @@ def create_product(request):
             messages.error(request, err)
             return render(request, "create_product.html", {"form": form})
 
-        st = Location.objects.filter(code__iexact="ST").first()
-        wh = Location.objects.filter(code__iexact="WH").first()
-        if not st or not wh:
-            messages.error(request, "Faltan ubicaciones ST o WH en el catálogo de bodegas.")
-            return render(request, "create_product.html", {"form": form})
-
         try:
             with transaction.atomic():
                 product = form.save()
 
-            now = timezone.now()
-
-            with transaction.atomic():
-                inv_st, _ = Inventory.objects.get_or_create(
-                    product=product,
-                    location=st,
-                    defaults={
-                        "quantity": Decimal("0.00"),
-                        "avg_unit_cost": Decimal("0.0000"),
-                        "min_stock": min_st,
-                        "max_stock": max_st,
-                        "updated_at": now,
-                    }
+                initialize_inventory_for_product(
+                    product_id=product.id_product,
+                    st_min=min_st,
+                    st_max=max_st,
+                    wh_min=min_wh,
+                    wh_max=max_wh,
                 )
-                inv_st.min_stock = min_st
-                inv_st.max_stock = max_st
-                inv_st.updated_at = now
-                inv_st.save(update_fields=["min_stock", "max_stock", "updated_at"])
 
-                inv_wh, _ = Inventory.objects.get_or_create(
-                    product=product,
-                    location=wh,
-                    defaults={
-                        "quantity": Decimal("0.00"),
-                        "avg_unit_cost": Decimal("0.0000"),
-                        "min_stock": min_wh,
-                        "max_stock": max_wh,
-                        "updated_at": now,
-                    }
-                )
-                inv_wh.min_stock = min_wh
-                inv_wh.max_stock = max_wh
-                inv_wh.updated_at = now
-                inv_wh.save(update_fields=["min_stock", "max_stock", "updated_at"])
-
-            if min_st > 0 and inv_st.quantity <= min_st:
-                messages.warning(request, f"ST: stock bajo (existencia {inv_st.quantity} ≤ mínimo {min_st}).")
-            if min_wh > 0 and inv_wh.quantity <= min_wh:
-                messages.warning(request, f"WH: stock bajo (existencia {inv_wh.quantity} ≤ mínimo {min_wh}).")
-
-            #Al crear el producto, redireccionar a la lista de productos
             messages.success(request, "Producto creado y umbrales por bodega guardados correctamente.")
             return redirect("product_list")
 

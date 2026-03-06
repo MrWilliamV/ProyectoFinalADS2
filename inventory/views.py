@@ -20,7 +20,7 @@ from HealthAndHouse.auth_rol import has_role
 from inventory.forms import InventoryMoveForm, InventoryConfigForm
 from .models import Inventory, InventoryMovement, ProductLot, LotStock, Product, Location, InventoryConfig, \
     TIPO_MOVIMIENTO_INICIAL
-from .services import cerrar_periodo_snapshot
+from .services import close_period_snapshot
 
 Q2 = Decimal("0.01")
 Q4 = Decimal("0.0001")
@@ -696,7 +696,7 @@ def inventory_initial_import_view(request):
     # Cerrar periodo contable manualmente
     if request.method == "POST" and "force_close_period" in request.POST:
         try:
-            res = cerrar_periodo_snapshot(request.user, config.pk)
+            res = close_period_snapshot(request.user, config.pk)
             messages.success(request, f"Periodo cerrado. Snapshot #{res['snapshot_id']} con {res['items']} ítems.")
         except Exception as e:
             messages.error(request, str(e))

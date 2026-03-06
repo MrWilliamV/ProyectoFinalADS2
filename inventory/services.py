@@ -1,5 +1,5 @@
 # inventory/services.py
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from collections import defaultdict
 from django.db import transaction
 from django.db.models.functions import Coalesce
@@ -8,12 +8,12 @@ from django.db.models import Sum, Subquery, OuterRef, Value, F, DecimalField
 
 from .models import (
     InventoryConfig, Inventory, LotStock, ProductLot,
-    InventoryPeriodSnapshot, InventoryPeriodSnapshotItem, InventoryMovement, TIPO_MOVIMIENTO_INICIAL
+    InventoryPeriodSnapshot, InventoryPeriodSnapshotItem, InventoryMovement, TIPO_MOVIMIENTO_INICIAL, Location
 )
 
 
 @transaction.atomic
-def cerrar_periodo_snapshot(user, cfg_id):
+def close_period_snapshot(user, cfg_id):
     """
     Performs the real accounting closure of the active inventory period.
 
@@ -299,3 +299,109 @@ def construir_snapshot_desde_movimientos_periodo(user, prev_cfg: InventoryConfig
         ))
     InventoryPeriodSnapshotItem.objects.bulk_create(items, batch_size=1000)
     return snap
+
+def _q2(value) -> Decimal:
+    return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _q4(value) -> Decimal:
+    return Decimal(value).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+
+def require_active_period() -> InventoryConfig:
+    """
+    Devuelve el periodo activo de inventario.
+    Lanza error si no existe.
+    """
+    cfg = InventoryConfig.objects.filter(is_active=True).select_related("main_location").first()
+    if not cfg:
+        raise ValueError("Debe existir un periodo de inventario activo.")
+    return cfg
+
+
+def get_location_by_code(code: str) -> Location:
+    """
+    Busca una ubicación por código.
+    """
+    loc = Location.objects.filter(code__iexact=code).first()
+    if not loc:
+        raise ValueError(f"No existe la ubicación con código '{code}'.")
+    return loc
+
+
+def get_or_create_inventory(product_id: int, location_id: int) -> Inventory:
+    """
+    Obtiene o crea el saldo general de un producto por ubicación.
+    """
+    inv, _ = Inventory.objects.get_or_create(
+        product_id=product_id,
+        location_id=location_id,
+        defaults={
+            "quantity": Decimal("0.00"),
+            "avg_unit_cost": Decimal("0.0000"),
+            "min_stock": Decimal("0.00"),
+            "max_stock": Decimal("0.00"),
+            "updated_at": timezone.now(),
+        },
+    )
+
+    if not inv.updated_at:
+        inv.updated_at = timezone.now()
+        inv.save(update_fields=["updated_at"])
+
+    return inv
+
+
+def get_available_stock_nonexpired(product_id: int, location_id: int, on_date=None) -> Decimal:
+    """
+    Suma el stock disponible no vencido por producto y ubicación.
+    """
+    if on_date is None:
+        on_date = timezone.localdate()
+
+    qty = (
+        LotStock.objects
+        .filter(
+            location_id=location_id,
+            lot__product_id=product_id,
+            lot__expire_date__gte=on_date
+        )
+        .aggregate(total=Sum("quantity"))["total"]
+        or Decimal("0")
+    )
+    return _q2(qty)
+
+
+def initialize_inventory_for_product(
+    *,
+    product_id: int,
+    st_min: Decimal,
+    st_max: Decimal,
+    wh_min: Decimal,
+    wh_max: Decimal,
+) -> dict:
+    """
+    Inicializa o actualiza los registros de inventario base para ST y WH.
+    """
+    st = get_location_by_code("ST")
+    wh = get_location_by_code("WH")
+    now = timezone.now()
+
+    inv_st = get_or_create_inventory(product_id=product_id, location_id=st.id_location)
+    inv_st.min_stock = _q2(st_min)
+    inv_st.max_stock = _q2(st_max)
+    inv_st.updated_at = now
+    inv_st.save(update_fields=["min_stock", "max_stock", "updated_at"])
+
+    inv_wh = get_or_create_inventory(product_id=product_id, location_id=wh.id_location)
+    inv_wh.min_stock = _q2(wh_min)
+    inv_wh.max_stock = _q2(wh_max)
+    inv_wh.updated_at = now
+    inv_wh.save(update_fields=["min_stock", "max_stock", "updated_at"])
+
+    return {
+        "status": "ok",
+        "product_id": product_id,
+        "st_inventory_id": inv_st.id_inventory,
+        "wh_inventory_id": inv_wh.id_inventory,
+    }

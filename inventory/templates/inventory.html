@@ -1,188 +1,236 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="max-w-5xl mx-auto space-y-6">
-
-    <!-- Header -->
-    <div class="flex items-center justify-between gap-3">
-        <div>
-            <h1 class="text-4xl font-bold">Entrada por lotes a bodega</h1>
-            <p class="text-sm opacity-70">Seleccione la ubicación y el producto para consultar el stock disponible.</p>
-        </div>
+<div class="max-w-5xl mx-auto p-6">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold">Movimiento de Inventario</h1>
+        <p class="text-sm text-gray-500">
+            Registra entradas, salidas y ajustes de inventario.
+        </p>
     </div>
 
-    <!-- Messages -->
     {% if messages %}
-    <div class="space-y-2">
-        {% for m in messages %}
-        <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
-            <span>{{ m }}</span>
+        <div class="space-y-2 mb-6">
+            {% for message in messages %}
+                <div class="alert
+                    {% if message.tags == 'success' %}alert-success{% endif %}
+                    {% if message.tags == 'error' %}alert-error{% endif %}
+                    {% if message.tags == 'warning' %}alert-warning{% endif %}
+                    {% if message.tags == 'info' %}alert-info{% endif %}
+                ">
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
     {% endif %}
 
-    <form method="get" class="card bg-base-100 shadow-sm">
-        <div class="card-body grid grid-cols-1 md:grid-cols-3 gap-4">
-            <label class="form-control">
-                <div class="label"><span class="label-text">Ubicación</span></div>
-                <select name="location" class="select select-bordered w-full" required>
-                    <option value="">Seleccione una ubicación...</option>
-                    {% for loc in locations %}
-                    <option value="{{ loc.id_location }}" {% if location_id == loc.id_location %}selected{% endif %}> {{ loc.name }} ({{ loc.code }})
-                    </option>
-                    {% endfor %}
-                </select>
-            </label>
-
-            <label class="form-control">
-                <div class="label"><span class="label-text">Producto</span></div>
-                <select name="product" class="select select-bordered w-full" required>
-                    <option value="">Seleccione un producto…</option>
-                    {% for p in products %}
-                    <option value="{{ p.pk }}" {% if product_id == p.pk %}selected{% endif %}> {{ p.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </label>
-
-            <div class="flex items-end">
-                <button class="btn btn-primary w-full">Cambiar</button>
+    {% if form.non_field_errors %}
+        <div class="alert alert-error mb-6">
+            <div>
+                {% for error in form.non_field_errors %}
+                    <div>{{ error }}</div>
+                {% endfor %}
             </div>
         </div>
-    </form>
+    {% endif %}
 
-    <div class="card bg-base-100 shadow-sm">
+    <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
-            <h2 class="card-title">Nueva entrada</h2>
-
-            {% if form.non_field_errors %}
-            <div class="alert alert-error"><span>{{ form.non_field_errors }}</span></div>
-            {% endif %}
-
-            <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form method="post" novalidate>
                 {% csrf_token %}
-                <select name="movement_type" class="select select-bordered w-full">
-                    <option value="PUR">Entrada (Compra)</option>
-                    <option value="ADJIN">Entrada (Ajuste)</option>
-                    <option value="SAL">Salida</option>
-                    <option value="ADJOUT">Salida (Ajuste)</option>
-                </select>
-                <input type="hidden" name="product" value="{{ product_id }}">
-                <input type="hidden" name="location" value="{{ location_id }}">
 
-                <div class="md:col-span-2">
-                    <div class="badge badge-success badge-lg">Tipo: Entrada (Compra por lotes)</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Tipo de movimiento</span>
+                        </label>
+                        <select id="movement_type" name="movement_type" class="select select-bordered w-full">
+                            <option value="PUR" {% if form.movement_type.value == "PUR" %}selected{% endif %}>Entrada (Compra)</option>
+                            <option value="ADJIN" {% if form.movement_type.value == "ADJIN" %}selected{% endif %}>Entrada (Ajuste)</option>
+                            <option value="SAL" {% if form.movement_type.value == "SAL" %}selected{% endif %}>Salida</option>
+                            <option value="ADJOUT" {% if form.movement_type.value == "ADJOUT" %}selected{% endif %}>Salida (Ajuste)</option>
+                        </select>
+                        {% if form.movement_type.errors %}
+                            <div class="text-error text-sm mt-1">
+                                {% for error in form.movement_type.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Ubicación</span>
+                        </label>
+                        {{ form.location }}
+                        {% if form.location.errors %}
+                            <div class="text-error text-sm mt-1">
+                                {% for error in form.location.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <!-- Lot code -->
-                <label class="form-control">
-                    <div class="label">
-                        <span class="label-text">Codigo de lote</span>
-                        {% if form.lot_code.errors %}
-                        <span class="label-text-alt text-error">{{ form.lot_code.errors|striptags }}</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Producto</span>
+                        </label>
+                        {{ form.product }}
+                        {% if form.product.errors %}
+                            <div class="text-error text-sm mt-1">
+                                {% for error in form.product.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                         {% endif %}
                     </div>
-                    <input type="text" maxlength="45" name="lot_code" id="{{ form.lot_code.id_for_label }}"
-                           class="input input-bordered w-full" placeholder="Ej. LOTE-ABC-001">
-                    <div class="label">
-                        <span class="label-text-alt opacity-70">
-                            Si no existe, se creará automáticamente.
-                        </span>
-                    </div>
-                </label>
 
-                <!-- Expiration date -->
-                <label class="form-control">
-                    <div class="label">
-                        <span class="label-text">Fecha de vencimiento</span>
-                        {% if form.expire_date.errors %}
-                        <span class="label-text-alt text-error">{{ form.expire_date.errors|striptags }}</span>
-                        {% endif %}
-                    </div>
-                    <input type="date" name="expire_date" id="{{ form.expire_date.id_for_label }}"
-                           class="input input-bordered w-full">
-                </label>
-
-                <!-- Quantity -->
-                <label class="form-control">
-                    <div class="label justify-between items-center">
-                        <div>
+                    <div class="form-control w-full">
+                        <label class="label">
                             <span class="label-text">Cantidad</span>
-                            {% if form.quantity.errors %}
-                            <span class="label-text-alt text-error">{{ form.quantity.errors|striptags }}</span>
-                            {% endif %}
-                        </div>
+                        </label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}
+                            <div class="text-error text-sm mt-1">
+                                {% for error in form.quantity.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
 
-                        <div class="label-text-alt text-gray-500">
-                            {% if qty_meta and qty_meta.max %}
-                            Máx: {{ qty_meta.max }}
-                            {% if qty_meta.current is not None %}
-                            · Actual: {{ qty_meta.current }}
-                            {% endif %}
-                            {% else %}
-                            Máx: —
-                            {% endif %}
-                        </div>
+                        {% if qty_meta.current or qty_meta.max %}
+                            <div class="text-xs text-gray-500 mt-1">
+                                {% if qty_meta.current %}Actual: {{ qty_meta.current }}{% endif %}
+                                {% if qty_meta.max %} | Máximo: {{ qty_meta.max }}{% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div id="entrada-fields" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Código de lote</span>
+                        </label>
+                        {{ form.lot_code }}
+                        {% if form.lot_code.errors %}
+                            <div class="text-error text-sm mt-1">
+                                {% for error in form.lot_code.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
 
-                    <input type="number" step="1" min="1" name="quantity"
-                           id="{{ form.quantity.id_for_label }}"
-                           class="input input-bordered w-full" placeholder="1" required>
-                </label>
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Fecha de vencimiento</span>
+                        </label>
+                        {{ form.expire_date }}
+                        {% if form.expire_date.errors %}
+                            <div class="text-error text-sm mt-1">
+                                {% for error in form.expire_date.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
 
-                <!-- Unit value -->
-                <label class="form-control">
-                    <div class="label">
-                        <span class="label-text">Valor unitario</span>
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Valor unitario</span>
+                        </label>
+                        {{ form.unit_price_in }}
                         {% if form.unit_price_in.errors %}
-                        <span class="label-text-alt text-error">{{ form.unit_price_in.errors|striptags }}</span>
+                            <div class="text-error text-sm mt-1">
+                                {% for error in form.unit_price_in.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                         {% endif %}
                     </div>
-                    <input type="number" step="0.01" min="0.01" name="unit_price_in"
-                           id="{{ form.unit_price_in.id_for_label }}"
-                           class="input input-bordered w-full" placeholder="10.99">
-                    <div class="label">
-                        <span class="label-text-alt opacity-70">Usado para recalcular el costo promedio.</span>
-                    </div>
-                </label>
 
-                <!-- Provider -->
-                <label class="form-control">
-                    <div class="label">
-                        <span class="label-text">Proveedor</span>
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Proveedor</span>
+                        </label>
+                        {{ form.supplier }}
                         {% if form.supplier.errors %}
-                        <span class="label-text-alt text-error">{{ form.supplier.errors|striptags }}</span>
+                            <div class="text-error text-sm mt-1">
+                                {% for error in form.supplier.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                         {% endif %}
                     </div>
-                    <select name="supplier" id="{{ form.supplier.id_for_label }}" class="select select-bordered w-full" required>
-                        <option value="">Seleccione un proveedor…</option>
-                        {% for s in form.fields.supplier.queryset %}
-                        <option value="{{ s.pk }}" {% if form.supplier.value == s.pk %}selected{% endif %}>
-                            {{ s.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </label>
+                </div>
 
-                <!-- Description -->
-                <label class="form-control md:col-span-2">
-                    <div class="label">
-                        <span class="label-text">Descripción</span>
+                <div class="grid grid-cols-1 gap-4 mb-6">
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">Descripción</span>
+                        </label>
+                        {{ form.descripcion }}
                         {% if form.descripcion.errors %}
-                        <span class="label-text-alt text-error">{{ form.descripcion.errors|striptags }}</span>
+                            <div class="text-error text-sm mt-1">
+                                {% for error in form.descripcion.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                         {% endif %}
                     </div>
-                    <textarea name="descripcion" id="{{ form.descripcion.id_for_label }}"
-                              class="textarea textarea-bordered min-h-24"
-                              placeholder="Ej. Ingreso por compra"></textarea>
-                </label>
+                </div>
 
-                <div class="md:col-span-2 card-actions justify-end mt-2">
-                    <button type="submit" name="action" value="save" class="btn btn-primary">Guardar entrada</button>
-                    <a href="{% url 'inventory' %}" class="btn btn-ghost">Limpiar</a>
+                {{ form.unidad }}
+
+                <div class="flex gap-3">
+                    <button type="submit" class="btn btn-primary">
+                        Guardar movimiento
+                    </button>
+                    <a href="{% url 'see_inventory' %}" class="btn btn-outline">
+                        Cancelar
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const movementType = document.getElementById("movement_type");
+    const entradaFields = document.getElementById("entrada-fields");
+
+    const lotCode = document.getElementById("id_lot_code");
+    const expireDate = document.getElementById("id_expire_date");
+    const unitPriceIn = document.getElementById("id_unit_price_in");
+    const supplier = document.getElementById("id_supplier");
+
+    function toggleEntradaFields() {
+        const isEntrada = ["PUR", "ADJIN"].includes(movementType.value);
+
+        entradaFields.style.display = isEntrada ? "" : "none";
+
+        if (lotCode) lotCode.required = isEntrada;
+        if (expireDate) expireDate.required = isEntrada;
+        if (unitPriceIn) unitPriceIn.required = isEntrada;
+        if (supplier) supplier.required = isEntrada;
+
+        if (!isEntrada) {
+            if (lotCode) lotCode.value = "";
+            if (expireDate) expireDate.value = "";
+            if (unitPriceIn) unitPriceIn.value = "";
+            if (supplier) supplier.selectedIndex = 0;
+        }
+    }
+
+    if (movementType) {
+        movementType.addEventListener("change", toggleEntradaFields);
+        toggleEntradaFields();
+    }
+});
+</script>
 {% endblock %}

@@ -21,15 +21,15 @@ MOV_CHOICES = [
 
 class InventoryMoveForm(forms.Form):
     """
-           movement_type (CharField): Hidden field; must be 'PUR'.
-        location (ModelChoiceField): Destination location for the entry.
-        product (ModelChoiceField): Product being received.
-        lot_code (CharField): Lot identifier associated with the product.
-        expire_date (DateField): Expiration date for the lot.
-        quantity (DecimalField): Received quantity (min 0.01).
-        unit_price_in (DecimalField): Unit cost for the incoming stock.
-        supplier (ModelChoiceField): Supplier associated with the purchase.
-        descripcion (CharField): Free-text description for the transaction.
+    movement_type (CharField): Hidden field; must be 'PUR' or 'ADJIN'.
+    location (ModelChoiceField): Destination location for the entry.
+    product (ModelChoiceField): Product being received.
+    lot_code (CharField): Lot identifier associated with the product.
+    expire_date (DateField): Expiration date for the lot.
+    quantity (DecimalField): Received quantity (min 0.01).
+    unit_price_in (DecimalField): Unit cost for the incoming stock.
+    supplier (ModelChoiceField): Supplier associated with the purchase.
+    descripcion (CharField): Free-text description for the transaction.
     """
     movement_type = forms.CharField(initial="PUR", widget=forms.HiddenInput())
 
@@ -39,6 +39,7 @@ class InventoryMoveForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={"class": "select select-bordered w-full"})
     )
+
     product = forms.ModelChoiceField(
         queryset=Product.objects.none(),
         label="Producto",
@@ -46,21 +47,35 @@ class InventoryMoveForm(forms.Form):
         widget=forms.Select(attrs={"class": "select select-bordered w-full"})
     )
 
-    lot_code = forms.CharField(max_length=40, label="Codigo de lote", required=True,
-                               widget=forms.TextInput(attrs={"class": "input input-bordered w-full"}))
-    expire_date = forms.DateField(label="Fecha de vencimiento",
-                                  required=True,
-                                  widget=forms.DateInput(attrs={"type": "date", "class": "input input-bordered w-full"}))
-    quantity = forms.DecimalField(max_digits=12, decimal_places=2,
-                                  min_value=Decimal("0.01"), label="Cantidad",
-                                  widget=forms.NumberInput(attrs={"class": "input input-bordered w-full"}))
-    unit_price_in = forms.DecimalField(max_digits=14,
-                                       decimal_places=2,
-                                       min_value=Decimal("0.01"),
-                                       label="Valor unitario",
-                                       widget=forms.NumberInput(attrs={"class": "input input-bordered w-full"}))
+    lot_code = forms.CharField(
+        max_length=40,
+        label="Código de lote",
+        required=True,
+        widget=forms.TextInput(attrs={"class": "input input-bordered w-full"})
+    )
 
-    # NEW: Proveedor (requerido en compras)
+    expire_date = forms.DateField(
+        label="Fecha de vencimiento",
+        required=True,
+        widget=forms.DateInput(attrs={"type": "date", "class": "input input-bordered w-full"})
+    )
+
+    quantity = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal("0.01"),
+        label="Cantidad",
+        widget=forms.NumberInput(attrs={"class": "input input-bordered w-full"})
+    )
+
+    unit_price_in = forms.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        min_value=Decimal("0.01"),
+        label="Valor unitario",
+        widget=forms.NumberInput(attrs={"class": "input input-bordered w-full"})
+    )
+
     supplier = forms.ModelChoiceField(
         queryset=Supplier.objects.all().order_by("name"),
         label="Proveedor",
@@ -68,23 +83,31 @@ class InventoryMoveForm(forms.Form):
         widget=forms.Select(attrs={"class": "select select-bordered w-full"})
     )
 
-    descripcion = forms.CharField(max_length=200, initial="Ingreso por compra",
-                                  label="Descripción", required=True,
-                                  widget=forms.TextInput(attrs={"class": "input input-bordered w-full"}))
+    descripcion = forms.CharField(
+        max_length=200,
+        initial="Ingreso por compra",
+        label="Descripción",
+        required=True,
+        widget=forms.TextInput(attrs={"class": "input input-bordered w-full"})
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["location"].queryset = Location.objects.all().order_by("name")
-        self.fields["product"].queryset = Product.objects.all().order_by("name")
-
-        today_str = strftime("%Y-%m-%d")
-        self.fields["expire_date"].widget.attrs["min"] = today_str
+        self.fields["product"].queryset = (
+            Product.objects
+            .filter(active=True)
+            .select_related("measure_unit")
+            .order_by("name")
+        )
+        self.fields["expire_date"].widget.attrs["min"] = date.today().isoformat()
 
     def clean(self):
         data = super().clean()
 
-        if data.get("movement_type") != "PUR":
-            self.add_error("movement_type", "Solo se permiten movimientos de entrada (compra).")
+        movement_type = data.get("movement_type")
+        if movement_type not in ["PUR", "ADJIN"]:
+            self.add_error("movement_type", "Solo se permiten entradas de inventario.")
 
         if not data.get("unit_price_in"):
             self.add_error("unit_price_in", "Requerido para entradas.")
@@ -95,18 +118,28 @@ class InventoryMoveForm(forms.Form):
         if not data.get("supplier"):
             self.add_error("supplier", "Selecciona un proveedor.")
 
+        expire_date = data.get("expire_date")
+        if expire_date and expire_date <= date.today():
+            self.add_error("expire_date", "La fecha de vencimiento debe ser mayor a la fecha actual.")
+
         product = data.get("product")
         location = data.get("location")
         quantity = data.get("quantity")
+
+        if product and not product.active:
+            self.add_error("product", "Solo se permiten productos activos.")
+
         if product and location and quantity:
             try:
                 inv = Inventory.objects.get(product=product, location=location)
                 max_stock = inv.max_stock or Decimal("0")
                 current = inv.quantity or Decimal("0")
+
                 if max_stock > 0 and current + quantity > max_stock:
                     remaining = max_stock - current
                     if remaining < 0:
                         remaining = Decimal("0.00")
+
                     self.add_error(
                         "quantity",
                         f"La entrada excede el máximo en {location.name}. "

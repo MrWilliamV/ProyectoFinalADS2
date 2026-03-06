@@ -351,7 +351,6 @@ def get_or_create_inventory(product_id: int, location_id: int) -> Inventory:
 
     return inv
 
-
 def get_available_stock_nonexpired(product_id: int, location_id: int, on_date=None) -> Decimal:
     """
     Suma el stock disponible no vencido por producto y ubicación.
@@ -404,4 +403,104 @@ def initialize_inventory_for_product(
         "product_id": product_id,
         "st_inventory_id": inv_st.id_inventory,
         "wh_inventory_id": inv_wh.id_inventory,
+    }
+
+@transaction.atomic
+def registrar_entrada_compra(
+    *,
+    user,
+    product,
+    location,
+    quantity,
+    unit_cost,
+    lot_code,
+    expire_date,
+    supplier,
+    description,
+    movement_type="PUR",
+):
+    """
+    Registra una entrada de inventario por compra y devuelve:
+    - inventory actualizado
+    - movement creado
+    - period activo
+    - lot usado/creado
+    """
+    cfg = InventoryConfig.objects.select_for_update().filter(is_active=True).first()
+    if not cfg:
+        raise ValueError("No hay periodo contable activo. Configúralo antes de operar.")
+
+    now = timezone.now()
+
+    lot, created = ProductLot.objects.select_for_update().get_or_create(
+        product=product,
+        lot_code=lot_code,
+        defaults={"expire_date": expire_date},
+    )
+
+    if not created and expire_date and lot.expire_date != expire_date:
+        lot.expire_date = expire_date
+        lot.save(update_fields=["expire_date"])
+
+    inv, _ = Inventory.objects.select_for_update().get_or_create(
+        product=product,
+        location=location,
+        defaults={
+            "quantity": Decimal("0.00"),
+            "avg_unit_cost": Decimal("0.0000"),
+            "updated_at": now,
+            "min_stock": Decimal("0.00"),
+            "max_stock": Decimal("0.00"),
+        },
+    )
+
+    lot_stock, _ = LotStock.objects.select_for_update().get_or_create(
+        lot=lot,
+        location=location,
+        defaults={"quantity": Decimal("0.00")},
+    )
+    lot_stock.quantity = quantity + (lot_stock.quantity or Decimal("0.00"))
+    lot_stock.save(update_fields=["quantity"])
+
+    qty_prev = inv.quantity or Decimal("0.00")
+    qty_new = qty_prev + quantity
+    prev_avg = inv.avg_unit_cost or Decimal("0.0000")
+
+    entrada_valor = quantity * unit_cost
+    total_prev_val = qty_prev * prev_avg
+    total_new_val = total_prev_val + entrada_valor
+    avg_new = (total_new_val / qty_new) if qty_new > 0 else prev_avg
+
+    inv.quantity = qty_new
+    inv.avg_unit_cost = avg_new
+    inv.updated_at = now
+    inv.save(update_fields=["quantity", "avg_unit_cost", "updated_at"])
+
+    unit_code = getattr(getattr(product, "measure_unit", None), "code", None) or "UND"
+
+    movement = InventoryMovement.objects.create(
+        product=product,
+        location=location,
+        lot=lot,
+        fecha=now,
+        tipo_movimiento=movement_type,
+        descripcion=description,
+        valor_unitario=unit_cost,
+        entrada_cantidad=quantity,
+        entrada_valor=entrada_valor,
+        salida_cantidad=Decimal("0.00"),
+        salida_valor=Decimal("0.0000"),
+        saldo_cantidad=qty_new,
+        saldo_valor=qty_new * avg_new,
+        proveedor=supplier,
+        unidad=unit_code,
+        created_by=(user if getattr(user, "is_authenticated", False) else None),
+        period=cfg,
+    )
+
+    return {
+        "inventory": inv,
+        "movement": movement,
+        "period": cfg,
+        "lot": lot,
     }

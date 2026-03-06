@@ -20,7 +20,7 @@ from HealthAndHouse.auth_rol import has_role
 from inventory.forms import InventoryMoveForm, InventoryConfigForm
 from .models import Inventory, InventoryMovement, ProductLot, LotStock, Product, Location, InventoryConfig, \
     TIPO_MOVIMIENTO_INICIAL
-from .services import close_period_snapshot
+from .services import close_period_snapshot, registrar_entrada_compra
 
 Q2 = Decimal("0.01")
 Q4 = Decimal("0.0001")
@@ -43,7 +43,6 @@ def _get_inv(pid, lid):
 @has_role("ADMINISTRADOR", "JEFE_ALMACEN")
 def inventory_movement_view(request):
     raw_product_id = request.GET.get("product") or request.POST.get("product") or ""
-
     raw_location_id = request.GET.get("location") or request.POST.get("location") or ""
 
     def _to_int_or_none(v):
@@ -72,134 +71,62 @@ def inventory_movement_view(request):
             location = cd["location"]
             quantity = _q2(cd["quantity"])
             unit_cost = _q4(cd.get("unit_price_in") or Decimal("0.0000"))
-            lot_code = cd["lot_code"]
-            expire_dt = cd.get("expire_date")
-            unit = cd["unidad"]
-            desc = cd["descripcion"]
             movement_type = cd["movement_type"]
 
-            # === PERIODO ACTIVO OBLIGATORIO ===
-            cfg = InventoryConfig.objects.filter(is_active=True).first()
-            if not cfg:
-                messages.error(request, "No hay periodo contable activo. Configúralo antes de operar.")
-                return render(request, "inventory.html", {
-                    "form": form, "qty_meta": qty_meta,
-                    "products": products, "locations": locations,
-                    "product_id": product_id, "location_id": location_id,
-                })
-
-            # Validación de vencimiento (solo entradas)
-            today = timezone.localdate()
-            if movement_type in ["PUR", "ADJIN"]:
-                if not expire_dt:
-                    form.add_error("expire_date", "Debes seleccionar una fecha de vencimiento.")
-                elif expire_dt <= today:
-                    form.add_error(
-                        "expire_date",
-                        f"La fecha de vencimiento ({expire_dt}) debe ser mayor a la fecha actual ({today})."
-                    )
-
-            # Validación stock máximo
-            inv = _get_inv(product.pk, location.pk)
-            current = (inv.quantity if inv else Decimal("0.00")) or Decimal("0.00")
-            if movement_type in ["PUR", "ADJIN"]:
-                max_stock = (inv.max_stock if inv else Decimal("0.00")) or Decimal("0.00")
-                if max_stock > 0 and (current + quantity) > max_stock:
-                    restante = max_stock - current
-                    if restante < 0:
-                        restante = Decimal("0.00")
-                    form.add_error(
-                        "quantity",
-                        f"Excede el máximo ({max_stock}). Actual: {current}. "
-                        f"Puedes ingresar como mucho {restante}."
-                    )
-
-            if form.errors:
-                return render(request, "inventory.html", {
-                    "form": form, "qty_meta": qty_meta,
-                    "products": products, "locations": locations,
-                    "product_id": product_id, "location_id": location_id,
-                })
-
             try:
-                with transaction.atomic():
-                    if movement_type in ["PUR", "ADJIN"]:
-                        # Lote
-                        lot, _ = ProductLot.objects.select_for_update().get_or_create(
-                            product=product, lot_code=lot_code, defaults={"expire_date": expire_dt}
-                        )
-                        # Inventario
-                        if not inv:
-                            inv = Inventory.objects.create(
-                                product=product, location=location,
-                                quantity=Decimal("0.00"),
-                                avg_unit_cost=Decimal("0.0000"),
-                                updated_at=timezone.now()
-                            )
-                        # Stock por lote/ubicación
-                        ls, _ = LotStock.objects.select_for_update().get_or_create(
-                            lot=lot, location=location, defaults={"quantity": Decimal("0.00")}
-                        )
-                        ls.quantity = _q2(ls.quantity + quantity)
-                        ls.save(update_fields=["quantity"])
+                if movement_type in ["PUR", "ADJIN"]:
+                    result = registrar_entrada_compra(
+                        user=request.user,
+                        product=product,
+                        location=location,
+                        quantity=quantity,
+                        unit_cost=unit_cost,
+                        lot_code=cd["lot_code"],
+                        expire_date=cd.get("expire_date"),
+                        supplier=cd["supplier"],
+                        description=cd["descripcion"],
+                        movement_type=movement_type,
+                    )
+                    unit = result["movement"].unidad
+                    saldo = _q2(result["inventory"].quantity)
+                    messages.success(request, f"Entrada registrada. Saldo actual: {saldo} {unit}.")
+                    return redirect("see_inventory")
 
-                        # Actualizar inventario
-                        qty_prev = inv.quantity or Decimal("0.00")
-                        qty_new = _q2(qty_prev + quantity)
-                        entrada_valor = _q4(quantity * unit_cost)
-                        total_prev_val = _q4(qty_prev * (inv.avg_unit_cost or Decimal("0.0000")))
-                        total_new_val = _q4(total_prev_val + entrada_valor)
-                        avg_new = _q4(total_new_val / qty_new) if qty_new > 0 else _q4(inv.avg_unit_cost)
+                elif movement_type in ["SAL", "ADJOUT"]:
+                    messages.warning(request, "La lógica para salidas no está implementada.")
+                    return redirect("see_inventory")
 
-                        inv.quantity = qty_new
-                        inv.avg_unit_cost = avg_new
-                        inv.updated_at = timezone.now()
-                        inv.save(update_fields=["quantity", "avg_unit_cost", "updated_at"])
-
-                        # === Movimiento (con PERIODO) ===
-                        InventoryMovement.objects.create(
-                            product=product, location=location, lot=lot,
-                            fecha=timezone.now(), tipo_movimiento=movement_type,
-                            descripcion=desc, valor_unitario=unit_cost,
-                            entrada_cantidad=quantity, entrada_valor=entrada_valor,
-                            salida_cantidad=Decimal("0.00"), salida_valor=Decimal("0.0000"),
-                            saldo_cantidad=qty_new, saldo_valor=_q4(qty_new * avg_new),
-                            proveedor=None, unidad=unit,
-                            created_by=(request.user if request.user.is_authenticated else None),
-                            period=cfg,  # <- CLAVE
-                        )
-
-                        messages.success(request, f"Entrada registrada. Saldo actual: {qty_new} {unit}.")
-                        return redirect("see_inventory")
-
-                    elif movement_type in ["SAL", "ADJOUT"]:
-                        messages.warning(request, "La lógica para salidas no está implementada.")
-                        # aquí después implementas la salida (similar a traslado)
-                        return redirect("see_inventory")
-
+            except ValueError as e:
+                form.add_error(None, str(e))
             except Exception as e:
                 form.add_error(None, f"Ocurrió un error de sistema: {e}")
-                return render(request, "inventory.html", {
-                    "form": form, "qty_meta": qty_meta,
-                    "products": products, "locations": locations,
-                    "product_id": product_id, "location_id": location_id,
-                })
 
-    else:
-        initial = {}
-        if product_id is not None:
-            initial["product"] = product_id
-        if location_id is not None:
-            initial["location"] = location_id
-        form = InventoryMoveForm(initial=initial)
+        return render(request, "inventory.html", {
+            "form": form,
+            "qty_meta": qty_meta,
+            "products": products,
+            "locations": locations,
+            "product_id": product_id,
+            "location_id": location_id,
+        })
+
+    initial = {}
+    if product_id is not None:
+        initial["product"] = product_id
+    if location_id is not None:
+        initial["location"] = location_id
+
+    form = InventoryMoveForm(initial=initial)
 
     return render(request, "inventory.html", {
-        "form": form, "qty_meta": qty_meta,
-        "products": Product.objects.order_by("name"),
-        "locations": Location.objects.order_by("name"),
+        "form": form,
+        "qty_meta": qty_meta,
+        "products": products,
+        "locations": locations,
         "product_id": str(product_id) if product_id else "",
         "location_id": str(location_id) if location_id else "",
     })
+
 @login_required
 @has_role("ADMINISTRADOR", "JEFE_ALMACEN")
 def inventory_list_view(request):

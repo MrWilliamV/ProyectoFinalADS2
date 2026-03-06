@@ -20,7 +20,7 @@ from HealthAndHouse.auth_rol import has_role
 from inventory.forms import InventoryMoveForm, InventoryConfigForm
 from .models import Inventory, InventoryMovement, ProductLot, LotStock, Product, Location, InventoryConfig, \
     TIPO_MOVIMIENTO_INICIAL
-from .services import close_period_snapshot, registrar_entrada_compra
+from .services import close_period_snapshot, registrar_entrada_compra, registrar_transferencia_lote
 
 Q2 = Decimal("0.01")
 Q4 = Decimal("0.0001")
@@ -281,165 +281,38 @@ def inventory_list_view(request):
 @login_required
 @has_role("ADMINISTRADOR", "JEFE_ALMACEN")
 def traslado_lote_view(request):
-
-    def _q2(x):
-        x = Decimal(x) if not isinstance(x, Decimal) else x
-        return x.quantize(Decimal("0.01"))
-
-    def _q4(x):
-        x = Decimal(x) if not isinstance(x, Decimal) else x
-        return x.quantize(Decimal("0.0001"))
-
     if request.method == "POST":
         origin_id = request.POST.get("origin")
         target_id = request.POST.get("to_location")
-        selected  = request.POST.get("selected")
-        qty_raw   = request.POST.get("quantity")
+        selected = request.POST.get("selected")
+        qty_raw = request.POST.get("quantity")
 
         if not selected:
             messages.error(request, "Selecciona un lote en la tabla.")
             return redirect("inventory_transfer")
 
-        if not origin_id or not target_id or origin_id == target_id:
-            messages.error(request, "Selecciona un origen y un destino diferentes.")
-            return redirect("inventory_transfer")
-
         try:
             lot_id_str, product_id_str = selected.split(":")
-            lot_id     = int(lot_id_str)
+            lot_id = int(lot_id_str)
             product_id = int(product_id_str)
         except Exception:
             messages.error(request, "Selección inválida.")
             return redirect("inventory_transfer")
 
         try:
-            q = _q2(Decimal(qty_raw))
-            if q <= 0:
-                raise ValueError
-        except Exception:
-            messages.error(request, "Cantidad inválida.")
-            return redirect("inventory_transfer")
-
-        # === Periodo activo obligatorio ===
-        cfg = InventoryConfig.objects.filter(is_active=True).first()
-        if not cfg:
-            messages.error(request, "No hay periodo contable activo. No se puede trasladar.")
-            return redirect("inventory_transfer")
-
-        try:
-            with transaction.atomic():
-                origin = Location.objects.select_for_update().get(pk=origin_id)
-                target = Location.objects.select_for_update().get(pk=target_id)
-
-                lot = ProductLot.objects.select_for_update().get(
-                    pk=lot_id, product_id=product_id
-                )
-
-                # Inventarios origen/destino
-                inv_from = Inventory.objects.select_for_update().get(
-                    product_id=product_id, location_id=origin_id
-                )
-                inv_to, _ = Inventory.objects.select_for_update().get_or_create(
-                    product_id=product_id,
-                    location=target,
-                    defaults={
-                        "quantity": Decimal("0.00"),
-                        "avg_unit_cost": Decimal("0.0000"),
-                        "updated_at": timezone.now(),
-                        "min_stock": Decimal("0.00"),
-                        "max_stock": Decimal("0.00"),
-                    },
-                )
-
-                # LotStock origen/destino
-                ls_from = LotStock.objects.select_for_update().get(
-                    lot_id=lot_id, location=origin
-                )
-                ls_to, _ = LotStock.objects.select_for_update().get_or_create(
-                    lot_id=lot_id, location=target, defaults={"quantity": Decimal("0.00")}
-                )
-
-                # Stock suficiente
-                if ls_from.quantity < q or inv_from.quantity < q:
-                    messages.error(request, "Stock insuficiente en el lote o inventario de origen.")
-                    return redirect("inventory_transfer")
-
-                now = timezone.now()
-
-                # --- ORIGEN (TOUT)
-                avg_from = _q4(inv_from.avg_unit_cost)
-
-                inv_from.quantity   = _q2(inv_from.quantity - q)
-                inv_from.updated_at = now
-                inv_from.save(update_fields=["quantity", "updated_at"])
-
-                ls_from.quantity = _q2(ls_from.quantity - q)
-                ls_from.save(update_fields=["quantity"])
-
-                out_val = _q4(q * avg_from)
-                saldo_val_from = _q4(inv_from.quantity * avg_from)
-
-                InventoryMovement.objects.create(
-                    product_id=product_id,
-                    location=origin,
-                    lot_id=lot_id,
-                    fecha=now,
-                    tipo_movimiento="TOUT",
-                    descripcion=f"Traslado {origin.code}→{target.code} (salida)",
-                    valor_unitario=avg_from,
-                    entrada_cantidad=Decimal("0.00"),
-                    entrada_valor=Decimal("0.0000"),
-                    salida_cantidad=q,
-                    salida_valor=out_val,
-                    saldo_cantidad=inv_from.quantity,
-                    saldo_valor=saldo_val_from,
-                    proveedor=None,
-                    unidad="UND",
-                    created_by=(request.user if request.user.is_authenticated else None),
-                    period=cfg,  # ← CLAVE: pertenece al periodo activo
-                )
-
-                # --- DESTINO (TIN)
-                qty_prev_to = inv_to.quantity
-                avg_prev_to = _q4(inv_to.avg_unit_cost)
-                qty_new_to  = _q2(qty_prev_to + q)
-
-                in_val        = out_val  # entra con costo del origen
-                total_prev_to = _q4(qty_prev_to * avg_prev_to)
-                total_new_to  = _q4(total_prev_to + in_val)
-                avg_new_to    = _q4(total_new_to / qty_new_to) if qty_new_to > 0 else avg_prev_to
-
-                inv_to.quantity      = qty_new_to
-                inv_to.avg_unit_cost = avg_new_to
-                inv_to.updated_at    = now
-                inv_to.save(update_fields=["quantity", "avg_unit_cost", "updated_at"])
-
-                ls_to.quantity = _q2(ls_to.quantity + q)
-                ls_to.save(update_fields=["quantity"])
-
-                saldo_val_to = _q4(qty_new_to * avg_new_to)
-
-                InventoryMovement.objects.create(
-                    product_id=product_id,
-                    location=target,
-                    lot_id=lot_id,
-                    fecha=now,
-                    tipo_movimiento="TIN",
-                    descripcion=f"Traslado {origin.code}→{target.code} (entrada)",
-                    valor_unitario=avg_from,
-                    entrada_cantidad=q,
-                    entrada_valor=in_val,
-                    salida_cantidad=Decimal("0.00"),
-                    salida_valor=Decimal("0.0000"),
-                    saldo_cantidad=qty_new_to,
-                    saldo_valor=saldo_val_to,
-                    proveedor=None,
-                    unidad="UND",
-                    created_by=(request.user if request.user.is_authenticated else None),
-                    period=cfg,  # ← CLAVE: pertenece al periodo activo
-                )
-
-            messages.success(request, f"Traslado realizado: {q} UND de {origin.name} → {target.name}.")
+            result = registrar_transferencia_lote(
+                user=request.user,
+                origin_id=origin_id,
+                target_id=target_id,
+                lot_id=lot_id,
+                product_id=product_id,
+                quantity=qty_raw,
+            )
+            messages.success(
+                request,
+                f"Traslado realizado: {result['quantity']} {result['movement_out'].unidad} "
+                f"de {result['origin'].name} → {result['target'].name}."
+            )
             return redirect("inventory_transfer")
 
         except ProductLot.DoesNotExist:
@@ -448,30 +321,28 @@ def traslado_lote_view(request):
             messages.error(request, "No existe inventario en el origen o destino.")
         except LotStock.DoesNotExist:
             messages.error(request, "No hay stock de ese lote en el origen.")
+        except ValueError as e:
+            messages.error(request, str(e))
         except Exception as e:
             messages.error(request, f"Ocurrió un error: {e}")
+
         return redirect("inventory_transfer")
 
-    # ---------------- GET: mostrar SOLO lo que existe en el periodo activo ----------------
-    # Si no hay periodo activo (lo desactivaste/cerraste), NO mostramos nada.
     cfg = InventoryConfig.objects.filter(is_active=True).first()
 
     selected_product = (request.GET.get("product") or "").strip()
 
-    # Origen por GET; si no viene, usa el primero disponible
     origin_id = request.GET.get("origin")
     if not origin_id:
         first_loc = Location.objects.order_by("id_location").first()
         origin_id = str(first_loc.pk) if first_loc else ""
 
     locations = Location.objects.all().order_by("id_location")
-    products  = Product.objects.all().order_by("name")
+    products = Product.objects.all().order_by("name")
 
-    page_obj = []
     if cfg and origin_id:
         ZERO_QTY = Value(0, output_field=DecimalField(max_digits=14, decimal_places=4))
 
-        # Agregado por periodo (incluye INI): entradas - salidas por (lot, location)
         movs = InventoryMovement.objects.filter(period=cfg, location_id=origin_id)
         agg = (
             movs.values("lot_id", "location_id")
@@ -481,8 +352,6 @@ def traslado_lote_view(request):
                 )
                 .annotate(period_qty=F("entradas") - F("salidas"))
         )
-
-        ZERO_QTY = Value(0, output_field=DecimalField(max_digits=14, decimal_places=4))
 
         rows = (
             LotStock.objects
@@ -505,17 +374,14 @@ def traslado_lote_view(request):
             .order_by("product_name", "expire_date", "lot_code")
         )
 
-        print(f"MOSTRANDO  ROWS {rows}")
         if selected_product:
             rows = rows.filter(lot__product_id=selected_product)
 
         paginator = Paginator(rows, 20)
         page_obj = paginator.get_page(request.GET.get("page"))
     else:
-        # No hay periodo activo → lista vacía (aunque LotStock tenga residuos)
         paginator = Paginator([], 20)
         page_obj = paginator.get_page(1)
-        # (Opcional) puedes mostrar un aviso en el template si cfg es None.
 
     context = {
         "locations": locations,
@@ -526,7 +392,6 @@ def traslado_lote_view(request):
         "no_active_period": (cfg is None),
     }
     return render(request, "inventory_transfer.html", context)
-
 
 def _current_stock_qty(product, location):
     """Stock actual = sum(entradas - salidas) para product+location."""

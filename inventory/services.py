@@ -504,3 +504,152 @@ def registrar_entrada_compra(
         "period": cfg,
         "lot": lot,
     }
+
+@transaction.atomic
+def registrar_transferencia_lote(
+    *,
+    user,
+    origin_id,
+    target_id,
+    lot_id,
+    product_id,
+    quantity,
+):
+    q = Decimal(quantity).quantize(Decimal("0.01"))
+    if q <= 0:
+        raise ValueError("Cantidad inválida.")
+
+    if str(origin_id) == str(target_id):
+        raise ValueError("Selecciona un origen y un destino diferentes.")
+
+    cfg = InventoryConfig.objects.select_for_update().filter(is_active=True).first()
+    if not cfg:
+        raise ValueError("No hay periodo contable activo. No se puede trasladar.")
+
+    origin = Location.objects.select_for_update().get(pk=origin_id)
+    target = Location.objects.select_for_update().get(pk=target_id)
+
+    lot = ProductLot.objects.select_for_update().select_related("product").get(
+        pk=lot_id,
+        product_id=product_id,
+    )
+
+    inv_from = Inventory.objects.select_for_update().get(
+        product_id=product_id,
+        location_id=origin_id,
+    )
+
+    inv_to, _ = Inventory.objects.select_for_update().get_or_create(
+        product_id=product_id,
+        location=target,
+        defaults={
+            "quantity": Decimal("0.00"),
+            "avg_unit_cost": Decimal("0.0000"),
+            "updated_at": timezone.now(),
+            "min_stock": Decimal("0.00"),
+            "max_stock": Decimal("0.00"),
+        },
+    )
+
+    ls_from = LotStock.objects.select_for_update().get(
+        lot_id=lot_id,
+        location=origin,
+    )
+
+    ls_to, _ = LotStock.objects.select_for_update().get_or_create(
+        lot_id=lot_id,
+        location=target,
+        defaults={"quantity": Decimal("0.00")},
+    )
+
+    if ls_from.quantity < q or inv_from.quantity < q:
+        raise ValueError("Stock insuficiente en el lote o inventario de origen.")
+
+    now = timezone.now()
+
+    avg_from = Decimal(inv_from.avg_unit_cost or Decimal("0.0000")).quantize(Decimal("0.0001"))
+
+    # ORIGEN
+    inv_from.quantity = Decimal(inv_from.quantity - q).quantize(Decimal("0.01"))
+    inv_from.updated_at = now
+    inv_from.save(update_fields=["quantity", "updated_at"])
+
+    ls_from.quantity = Decimal(ls_from.quantity - q).quantize(Decimal("0.01"))
+    ls_from.save(update_fields=["quantity"])
+
+    out_val = Decimal(q * avg_from).quantize(Decimal("0.0001"))
+    saldo_val_from = Decimal(inv_from.quantity * avg_from).quantize(Decimal("0.0001"))
+
+    unit_code = getattr(getattr(lot.product, "measure_unit", None), "code", None) or "UND"
+
+    mov_out = InventoryMovement.objects.create(
+        product_id=product_id,
+        location=origin,
+        lot_id=lot_id,
+        fecha=now,
+        tipo_movimiento="TOUT",
+        descripcion=f"Traslado {origin.code}→{target.code} (salida)",
+        valor_unitario=avg_from,
+        entrada_cantidad=Decimal("0.00"),
+        entrada_valor=Decimal("0.0000"),
+        salida_cantidad=q,
+        salida_valor=out_val,
+        saldo_cantidad=inv_from.quantity,
+        saldo_valor=saldo_val_from,
+        proveedor=None,
+        unidad=unit_code,
+        created_by=(user if getattr(user, "is_authenticated", False) else None),
+        period=cfg,
+    )
+
+    # DESTINO
+    qty_prev_to = Decimal(inv_to.quantity or Decimal("0.00")).quantize(Decimal("0.01"))
+    avg_prev_to = Decimal(inv_to.avg_unit_cost or Decimal("0.0000")).quantize(Decimal("0.0001"))
+    qty_new_to = Decimal(qty_prev_to + q).quantize(Decimal("0.01"))
+
+    in_val = out_val
+    total_prev_to = Decimal(qty_prev_to * avg_prev_to).quantize(Decimal("0.0001"))
+    total_new_to = Decimal(total_prev_to + in_val).quantize(Decimal("0.0001"))
+    avg_new_to = Decimal(total_new_to / qty_new_to).quantize(Decimal("0.0001")) if qty_new_to > 0 else avg_prev_to
+
+    inv_to.quantity = qty_new_to
+    inv_to.avg_unit_cost = avg_new_to
+    inv_to.updated_at = now
+    inv_to.save(update_fields=["quantity", "avg_unit_cost", "updated_at"])
+
+    ls_to.quantity = Decimal(ls_to.quantity + q).quantize(Decimal("0.01"))
+    ls_to.save(update_fields=["quantity"])
+
+    saldo_val_to = Decimal(qty_new_to * avg_new_to).quantize(Decimal("0.0001"))
+
+    mov_in = InventoryMovement.objects.create(
+        product_id=product_id,
+        location=target,
+        lot_id=lot_id,
+        fecha=now,
+        tipo_movimiento="TIN",
+        descripcion=f"Traslado {origin.code}→{target.code} (entrada)",
+        valor_unitario=avg_from,
+        entrada_cantidad=q,
+        entrada_valor=in_val,
+        salida_cantidad=Decimal("0.00"),
+        salida_valor=Decimal("0.0000"),
+        saldo_cantidad=qty_new_to,
+        saldo_valor=saldo_val_to,
+        proveedor=None,
+        unidad=unit_code,
+        created_by=(user if getattr(user, "is_authenticated", False) else None),
+        period=cfg,
+    )
+
+    return {
+        "origin": origin,
+        "target": target,
+        "quantity": q,
+        "movement_out": mov_out,
+        "movement_in": mov_in,
+        "inventory_from": inv_from,
+        "inventory_to": inv_to,
+        "lot_stock_from": ls_from,
+        "lot_stock_to": ls_to,
+    }

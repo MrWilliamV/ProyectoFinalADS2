@@ -86,15 +86,6 @@ class InventoryMoveForm(forms.Form):
         widget=forms.Select(attrs={"class": "select select-bordered w-full"})
     )
 
-    # Se deja para no romper la vista actual, que todavía lee cd["unidad"]
-    unidad = forms.ChoiceField(
-        choices=[("UND", "Unidad"), ("ML", "Mililitro"), ("MG", "Miligramo"),
-                 ("GR", "Gramo"), ("KG", "Kilogramo"), ("LT", "Litro"), ("CJ", "Caja")],
-        initial="UND",
-        required=False,
-        widget=forms.HiddenInput()
-    )
-
     descripcion = forms.CharField(
         max_length=200,
         initial="Ingreso por compra",

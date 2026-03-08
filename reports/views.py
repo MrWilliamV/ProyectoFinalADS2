@@ -26,98 +26,35 @@ from reportlab.lib import colors
 import csv
 from io import StringIO
 
+from reports.queries import build_kardex_report_data, get_kardex_filters
+
+
 @login_required
 @has_role("ADMINISTRADOR", "AUDITOR")
 def kardex_report(request):
-    """
-    Por defecto filtra por el PERIODO ACTIVO (InventoryConfig.is_active=True).
-    Si llega ?period=<id>, usa ese periodo.
-    Los filtros de fechas start/end son opcionales y se aplican DENTRO del periodo seleccionado.
-    """
-    # === Elegir periodo ===
-    period_id = (request.GET.get("period") or "").strip()
-    if period_id:
-        period = InventoryConfig.objects.filter(pk=period_id).first()
-    else:
-        period = InventoryConfig.objects.filter(is_active=True).first()
-
-    # Rango de 30 días por defecto (solo para UI / y si el usuario quiere acotar)
-    today = timezone.localdate()
-    default_start = today - timedelta(days=30)
-    default_end = today
-
-    start_str = request.GET.get("start") or ""
-    end_str = request.GET.get("end") or ""
-
-    def _parse_date_safe(value, default=None):
-        if value:
-            try:
-                return timezone.datetime.fromisoformat(value).date()
-            except Exception:
-                d = parse_date(value)
-                if d:
-                    return d
-        return default
-
-    start_date = _parse_date_safe(start_str, None)
-    end_date = _parse_date_safe(end_str, None)
-    if start_date and end_date and start_date > end_date:
-        start_date, end_date = end_date, start_date
-
-    # === Query base: POR PERIODO ===
-    qs = (InventoryMovement.objects
-          .select_related("product", "location", "lot")
-          .order_by("-fecha", "-id_movement"))
-
-    if period:
-        qs = qs.filter(period=period)  # <-- clave: limitar al periodo seleccionado
-
-    # Fechas (opcionales y siempre dentro del periodo si existe)
-    if start_date:
-        qs = qs.filter(fecha__date__gte=start_date)
-    if end_date:
-        qs = qs.filter(fecha__date__lte=end_date)
-
-    # Filtros: ubicación y producto
-    location_id = (request.GET.get("location") or "").strip()
-    product_id = (request.GET.get("product") or "").strip()
-    if location_id:
-        qs = qs.filter(location__id_location=location_id)
-    if product_id:
-        qs = qs.filter(product__id_product=product_id)
-
-    totals = qs.aggregate(
-        entrada_cantidad=Sum("entrada_cantidad"),
-        entrada_valor=Sum("entrada_valor"),
-        salida_cantidad=Sum("salida_cantidad"),
-        salida_valor=Sum("salida_valor"),
+    report_data = build_kardex_report_data(
+        period_id=(request.GET.get("period") or "").strip(),
+        start_str=request.GET.get("start") or "",
+        end_str=request.GET.get("end") or "",
+        location_id=(request.GET.get("location") or "").strip(),
+        product_id=(request.GET.get("product") or "").strip(),
+        page=request.GET.get("page") or 1,
     )
 
-    # Paginación
-    paginator = Paginator(qs, 15)
-    page_obj = paginator.get_page(request.GET.get("page") or 1)
-
-    # Para el UI:
-    # - fechas en el encabezado: si el usuario no puso nada, mostramos últimos 30 días
-    #   (solo como referencia visual). No cambia el filtro por periodo.
-    ui_start = start_date or default_start
-    ui_end = end_date or default_end
+    filters = get_kardex_filters()
 
     context = {
-        "page_obj": page_obj,
-        "totals": totals,
-        "start": ui_start,
-        "end": ui_end,
-        "count": paginator.count,
-
-        "locations": Location.objects.all().order_by("code"),
-        "products": Product.objects.all().order_by("name"),
-        "selected_location": location_id,
-        "selected_product": product_id,
-
-        # === Para el selector de periodos ===
-        "periods": InventoryConfig.objects.all().order_by("-is_active", "-fecha_corte", "-id"),
-        "current_period_id": period.id if period else None,
+        "page_obj": report_data["page_obj"],
+        "totals": report_data["totals"],
+        "start": report_data["start"],
+        "end": report_data["end"],
+        "count": report_data["count"],
+        "locations": filters["locations"],
+        "products": filters["products"],
+        "selected_location": report_data["selected_location"],
+        "selected_product": report_data["selected_product"],
+        "periods": filters["periods"],
+        "current_period_id": report_data["current_period_id"],
     }
     return render(request, "kardex.html", context)
 

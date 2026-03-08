@@ -20,6 +20,7 @@ from HealthAndHouse.auth_rol import has_role
 from inventory.forms import InventoryMoveForm, InventoryConfigForm
 from .models import Inventory, InventoryMovement, ProductLot, LotStock, Product, Location, InventoryConfig, \
     TIPO_MOVIMIENTO_INICIAL
+from .queries import get_inventory_filter_data, build_inventory_list_page
 from .services import close_period_snapshot, registrar_entrada_compra, registrar_transferencia_lote, \
     registrar_salida_inventario
 
@@ -142,7 +143,6 @@ def inventory_movement_view(request):
 @login_required
 @has_role("ADMINISTRADOR", "JEFE_ALMACEN")
 def inventory_list_view(request):
-
     q = request.GET.get("q", "").strip()
     loc_id = request.GET.get("location")
     sin_ini = request.GET.get("sin_ini") in ("1", "true", "yes")
@@ -153,130 +153,28 @@ def inventory_list_view(request):
     else:
         cfg = InventoryConfig.objects.filter(is_active=True).first()
 
-    # Si no hay periodo seleccionable/activo, mostramos la vista sin datos
-    locations = Location.objects.all().order_by("id_location")
-    periods = InventoryConfig.objects.all().order_by("-fecha_corte", "-id")
+    filter_data = get_inventory_filter_data()
+    locations = filter_data["locations"]
+    periods = filter_data["periods"]
 
     if not cfg:
         return render(request, "see_inventory.html", {
-            "no_active_period": True,
+            "page_obj": [],
             "locations": locations,
-            "current_location": request.GET.get("location"),
+            "current_location": loc_id,
             "search": q,
+            "no_active_period": True,
+            "sin_ini": sin_ini,
             "periods": periods,
             "current_period_id": None,
-            "sin_ini": sin_ini,
         })
 
-    ZERO_QTY = Value(0, output_field=DecimalField(max_digits=14, decimal_places=4))
-    ZERO_VAL = Value(0, output_field=DecimalField(max_digits=16, decimal_places=4))
-    ZERO_COST = Value(0, output_field=DecimalField(max_digits=14, decimal_places=6))
-
-    # Base: movimientos del periodo seleccionado (activo por defecto)
-    movs = InventoryMovement.objects.filter(period=cfg)
-    if sin_ini:
-        movs = movs.exclude(tipo_movimiento=TIPO_MOVIMIENTO_INICIAL)
-
-    agg = (
-        movs.values("lot_id", "location_id")
-            .annotate(
-                entradas=Coalesce(Sum("entrada_cantidad"), ZERO_QTY),
-                salidas=Coalesce(Sum("salida_cantidad"), ZERO_QTY),
-                entrada_valor=Coalesce(Sum("entrada_valor"), ZERO_VAL),
-                salida_valor=Coalesce(Sum("salida_valor"), ZERO_VAL),
-                updated_at=Max("fecha"),
-            )
-            .annotate(
-                qty=F("entradas") - F("salidas"),
-                total=F("entrada_valor") - F("salida_valor"),
-                avg=Case(
-                    When(qty__gt=0, then=F("total") / F("qty")),
-                    default=ZERO_COST, output_field=DecimalField(max_digits=14, decimal_places=6),
-                ),
-            )
+    page_obj = build_inventory_list_page(
+        cfg=cfg,
+        q=q,
+        loc_id=loc_id,
+        page_number=request.GET.get("page"),
     )
-
-    qs = (
-        LotStock.objects
-        .select_related("lot", "lot__product", "location")
-        .annotate(
-            row_id=F("id_lot_stock") if hasattr(LotStock, "id_lot_stock") else F("lot__id_lot"),
-            product_id=F("lot__product__id_product"),
-            lot_code=F("lot__lot_code"),
-            id_lot=F("lot__id_lot"),
-            name=F("lot__product__name"),
-            expire_date=F("lot__expire_date"),
-
-            # Cantidad calculada por movimientos del periodo (lo que ya tenías)
-            period_qty=Coalesce(
-                Subquery(
-                    agg.values("qty").filter(
-                        lot_id=OuterRef("lot_id"),
-                        location_id=OuterRef("location_id")
-                    )[:1]
-                ),
-                ZERO_QTY
-            ),
-
-            # Cantidad REAL actual en tabla LotStock (verdad de hoy)
-            ls_qty=F("quantity"),
-
-            # Mostrar la MENOR de ambas (nunca más que lo que existe hoy)
-            display_qty=Case(
-                When(period_qty__isnull=True, then=F("ls_qty")),
-                When(period_qty__gt=F("ls_qty"), then=F("ls_qty")),
-                default=F("period_qty"),
-                output_field=DecimalField(max_digits=14, decimal_places=4),
-            ),
-
-            # Precio: conservamos el promedio del periodo (como ya tenías)
-            period_price=Coalesce(
-                Subquery(
-                    agg.values("avg").filter(
-                        lot_id=OuterRef("lot_id"),
-                        location_id=OuterRef("location_id")
-                    )[:1]
-                ),
-                ZERO_COST
-            ),
-
-            updated_at=Subquery(
-                agg.values("updated_at").filter(
-                    lot_id=OuterRef("lot_id"),
-                    location_id=OuterRef("location_id")
-                )[:1]
-            ),
-        )
-        # importante: ahora filtramos por lo que MOSTRAMOS
-        .filter(display_qty__gt=0)
-    )
-
-    if loc_id:
-        qs = qs.filter(location__id_location=loc_id)
-    if q:
-        filters = (
-                Q(lot__product__name__icontains=q) |
-                Q(lot__lot_code__icontains=q)
-        )
-
-        # Si el usuario escribe un número, permite buscar por IDs exactos
-        if q.isdigit():
-            num = int(q)
-            filters |= Q(lot__id_lot=num) | Q(lot__product__id_product=num)
-
-        qs = qs.filter(filters)
-
-    qs = qs.order_by("location__id_location", "name", "expire_date", "id_lot")
-
-    # mapear para la plantilla
-    rows = []
-    for obj in qs:
-        obj.quantity = obj.display_qty
-        obj.price = obj.period_price
-        rows.append(obj)
-
-    paginator = Paginator(rows, 25)
-    page_obj = paginator.get_page(request.GET.get("page"))
 
     return render(request, "see_inventory.html", {
         "page_obj": page_obj,
@@ -285,7 +183,6 @@ def inventory_list_view(request):
         "search": q,
         "no_active_period": False,
         "sin_ini": sin_ini,
-        # === Nuevo: datos para el filtro de periodos ===
         "periods": periods,
         "current_period_id": cfg.id,
     })

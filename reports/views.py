@@ -26,7 +26,7 @@ from reportlab.lib import colors
 import csv
 from io import StringIO
 
-from reports.queries import build_kardex_report_data, get_kardex_filters
+from reports.queries import build_kardex_report_data, get_kardex_filters, build_cash_report_data
 
 
 @login_required
@@ -77,111 +77,23 @@ def _parse_date_safe(value, default=None):
 @login_required
 @has_role("ADMINISTRADOR", "AUDITOR")
 def cash_report(request):
-    # Filtros
-    start_date_str = request.GET.get("start_date", "")
-    end_date_str   = request.GET.get("end_date", "")
-    cashier_id     = request.GET.get("cashier", "")
-
-    today = timezone.localdate()
-    start_date = _parse_date_safe(start_date_str, default=today)
-    end_date   = _parse_date_safe(end_date_str, default=today)
-
-    # Base queryset
-    qs = CashSession.objects.select_related("cashier")
-
-    # Filtros por fecha y cajero
-    if start_date:
-        qs = qs.filter(opened_at__date__gte=start_date)
-    if end_date:
-        qs = qs.filter(opened_at__date__lte=end_date)
-    if cashier_id:
-        qs = qs.filter(cashier_id=cashier_id)
-
-    #AGREGADOS
-    from django.db.models import Count, Sum, Q, Value, DecimalField, F
-    from django.db.models.functions import Coalesce
-
-    zero = Value(Decimal("0.00"), output_field=DecimalField(max_digits=14, decimal_places=2))
-
-    sales_sum   = Coalesce(Sum("movements__amount", filter=Q(movements__mtype__iexact="DEPOSITO")), zero)
-    sales_count = Count("movements", filter=Q(movements__mtype__iexact="DEPOSITO"))
-    expense_sum = Coalesce(Sum("movements__amount", filter=Q(movements__mtype__iexact="RETIRO")), zero)
-
-    qs = qs.annotate(
-        total_sales=sales_sum,
-        sales_count=sales_count,
-        total_expense=expense_sum,
-        total_difference=F("total_sales") - F("total_expense"),
-    ).order_by("-opened_at").distinct()
-
-    # Metricas globales
-    session_count        = qs.count()
-    agg_total_sales      = sum((s.total_sales or Decimal("0.00")) for s in qs)
-    agg_total_expense    = sum((s.total_expense or Decimal("0.00")) for s in qs)
-    agg_sales_count      = sum((getattr(s, "sales_count", 0) or 0) for s in qs)
-    agg_total_difference = agg_total_sales - agg_total_expense
-
-    # Exportar CSV
-    if request.GET.get("export") == "csv":
-        buffer = StringIO()
-        writer = csv.writer(buffer, delimiter=';', quoting=csv.QUOTE_MINIMAL)
-
-        # Encabezados
-        writer.writerow([
-            "Apertura",
-            "Cierre",
-            "Cajero",
-            "Cant. Ventas",
-            "Apertura (Inicial)",
-            "Total Ventas",
-            "Total Egresos",
-            "Diferencia",
-        ])
-
-        # Filas
-        for s in qs:
-            cashier_name = ""
-            if s.cashier:
-                fn = getattr(s.cashier, "get_full_name", lambda: "")()
-                cashier_name = fn or getattr(s.cashier, "username", "")
-
-            writer.writerow([
-                s.opened_at.strftime("%Y-%m-%d %H:%M:%S") if s.opened_at else "",
-                s.closed_at.strftime("%Y-%m-%d %H:%M:%S") if s.closed_at else "",
-                cashier_name,
-                s.sales_count or 0,
-                f"{(s.opening_amount or Decimal('0.00')):.2f}",
-                f"{(s.total_sales or Decimal('0.00')):.2f}",
-                f"{(s.total_expense or Decimal('0.00')):.2f}",
-                f"{(s.total_difference or Decimal('0.00')):.2f}",
-            ])
-
-        resp = HttpResponse(buffer.getvalue(), content_type="text/csv; charset=utf-8")
-        resp["Content-Disposition"] = f'attachment; filename=\"reporte_caja_{start_date}_{end_date}.csv\"'
-        return resp
-
-    # Paginación
-    page = request.GET.get("page", 1)
-    paginator = Paginator(qs, 25)
-    page_obj = paginator.get_page(page)
-
-    preserved = request.GET.copy()
-    preserved.pop("page", None)
-    qs_params = preserved.urlencode()
+    report_data = build_cash_report_data(
+        start_str=request.GET.get("start") or "",
+        end_str=request.GET.get("end") or "",
+        status=(request.GET.get("status") or "").strip(),
+        cashier=(request.GET.get("cashier") or "").strip(),
+        page=request.GET.get("page") or 1,
+    )
 
     context = {
-        "page_obj": page_obj,
-        "agg_total_sales":   f"{agg_total_sales:.2f}",
-        "agg_total_expense": f"{agg_total_expense:.2f}",
-        "agg_total_difference": f"{agg_total_difference:.2f}",
-        "agg_sales_count":   agg_sales_count,
-        "session_count": session_count,
-
-        "start_date": start_date.strftime("%Y-%m-%d") if start_date else "",
-        "end_date":   end_date.strftime("%Y-%m-%d") if end_date else "",
-        "cashiers": User.objects.filter(Q(is_active=True) | Q(is_active=1)).order_by("username").distinct(),
-        "cashier_selected": cashier_id,
-        "qs_params": qs_params,
+        "page_obj": report_data["page_obj"],
+        "start": report_data["start"],
+        "end": report_data["end"],
+        "count": report_data["count"],
+        "selected_status": report_data["selected_status"],
+        "selected_cashier": report_data["selected_cashier"],
+        "total_opening": report_data["total_opening"],
+        "total_closing": report_data["total_closing"],
     }
     return render(request, "cash_report.html", context)
 

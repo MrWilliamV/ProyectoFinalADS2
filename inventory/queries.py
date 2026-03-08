@@ -6,7 +6,8 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce
 
-from .models import InventoryConfig, InventoryMovement, LotStock, Location
+from product.models import Product
+from inventory.models import InventoryConfig, InventoryMovement, LotStock, Location, Inventory, ProductLot
 
 
 def build_inventory_list_page(*, cfg, q="", loc_id=None, page_number=1):
@@ -103,3 +104,81 @@ def get_inventory_filter_data():
         "locations": locations,
         "periods": periods,
     }
+
+def _current_stock_qty(product, location):
+    """Stock actual = sum(entradas - salidas) para product+location."""
+    agg = InventoryMovement.objects.filter(
+        product=product, location=location
+    ).aggregate(qty=Coalesce(Sum(F("entrada_cantidad") - F("salida_cantidad")), Value(Decimal("0.00"))))
+    return agg["qty"] or Decimal("0.00")
+
+
+def _stock_limits_for(product, location):
+    """
+    Obtiene min/max exclusivamente desde Inventory (por producto y ubicación).
+    Si no existe registro Inventory, no aplica límites (None, None).
+    """
+    inv = Inventory.objects.filter(product=product, location=location).only("min_stock", "max_stock").first()
+    if not inv:
+        return (None, None)
+
+    # normaliza a Decimal si son numéricos
+    def _to_dec(x):
+        if x is None:
+            return None
+        return Decimal(str(x))
+
+    try:
+        min_s = _to_dec(getattr(inv, "min_stock", None))
+    except Exception:
+        min_s = None
+    try:
+        max_s = _to_dec(getattr(inv, "max_stock", None))
+    except Exception:
+        max_s = None
+    return (min_s, max_s)
+
+
+# Encabezados EXACTOS del import/export de inventario inicial
+INITIAL_HEADERS = [
+    "codigo_producto",
+    "nombre_producto",
+    "lote",
+    "fecha_vencimiento",
+    "cantidad_de_producto",
+    "precio",
+    "unidad",
+]
+
+
+def _lot_code(lot: ProductLot) -> str:
+    for f in ("code", "lot_code", "number", "name"):
+        if hasattr(lot, f):
+            return str(getattr(lot, f) or "")
+    return ""
+
+
+def _lot_expire(lot: ProductLot):
+    for f in ("expire_date", "expiration_date", "due_date", "fecha_vencimiento"):
+        if hasattr(lot, f):
+            return getattr(lot, f)
+    return None
+
+def _product_unit(prod: Product) -> str:
+    for f in ("unit", "unidad", "uom", "unidad_medida"):
+        if hasattr(prod, f):
+            val = getattr(prod, f)
+            if val:
+                return str(val)
+    return "und"
+
+def _avg_cost(prod: Product, location) -> Decimal:
+    inv = Inventory.objects.filter(product=prod, location=location).first()
+    if inv and getattr(inv, "avg_unit_cost", None) is not None:
+        return inv.avg_unit_cost
+    return Decimal("0.0000")
+
+
+def _has_field(model_cls, name: str) -> bool:
+    return any(f.name == name for f in model_cls._meta.get_fields())
+

@@ -1,12 +1,64 @@
 from datetime import timedelta
 
 from django.core.paginator import Paginator
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
+from CashRegister.models import CashSession
 from inventory.models import InventoryMovement, Product, Location, InventoryConfig
 
+def build_cash_report_data(*, start_str="", end_str="", status="", cashier="", page=1):
+    today = timezone.localdate()
+    default_start = today - timedelta(days=30)
+    default_end = today
+
+    start_date = parse_report_date(start_str, None)
+    end_date = parse_report_date(end_str, None)
+
+    if start_date and end_date and start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    qs = (
+        CashSession.objects
+        .select_related("cashier")
+        .order_by("-opened_at", "-id_cash_session")
+    )
+
+    if start_date:
+        qs = qs.filter(opened_at__date__gte=start_date)
+    if end_date:
+        qs = qs.filter(opened_at__date__lte=end_date)
+
+    if status:
+        if status == "open":
+            qs = qs.filter(closed_at__isnull=True)
+        elif status == "closed":
+            qs = qs.filter(closed_at__isnull=False)
+
+    if cashier:
+        qs = qs.filter(
+            Q(cashier__username__icontains=cashier) |
+            Q(cashier__first_name__icontains=cashier) |
+            Q(cashier__last_name__icontains=cashier)
+        )
+
+    paginator = Paginator(qs, 15)
+    page_obj = paginator.get_page(page or 1)
+
+    total_opening = sum((obj.opening_amount or 0) for obj in page_obj.object_list)
+    total_closing = sum((obj.counted_cash or 0) for obj in page_obj.object_list)
+
+    return {
+        "page_obj": page_obj,
+        "count": paginator.count,
+        "start": start_date or default_start,
+        "end": end_date or default_end,
+        "selected_status": status,
+        "selected_cashier": cashier,
+        "total_opening": total_opening,
+        "total_closing": total_closing,
+    }
 
 def parse_report_date(value, default=None):
     if value:
